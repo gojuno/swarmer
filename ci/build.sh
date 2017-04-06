@@ -7,6 +7,7 @@ PROJECT_DIR="$DIR/.."
 
 pushd "$PROJECT_DIR"
 
+# Files created in mounted volume by container should have same owner as host machine user to prevent chmod problems.
 USER_ID=`id -u $USER`
 
 BUILD_COMMAND="set -xe && "

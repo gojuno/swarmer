@@ -86,6 +86,14 @@ java -jar swarmer-latest-version.jar \
 --redirect-logcat-to test_emulator_2_logcat.txt
 ```
 
+### How to build
+
+Dependencies: you only need `docker` and `bash` installed on your machine.
+
+```console
+bash ci/build.sh
+```
+
 ## License
 
 ```
