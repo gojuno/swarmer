@@ -13,29 +13,29 @@
 #### Supported options:
 
 * `--help, -help, help, -h`
- * Print help and exit.
- * Required: no.
+  * Print help and exit.
+  * Required: no.
 * `--emulator-name`
- * Name for the emulator, i.e. `test_emulator_1`.
- * Required: **yes**.
+  * Name for the emulator, i.e. `test_emulator_1`.
+  * Required: **yes**.
 * `--package`
- * Package of the system image for this AVD (e.g.'system-images;android-25;google_apis;x86') to pass to `avdmanager create avd --package`.
- * Required: **yes**.
+  * Package of the system image for this AVD (e.g.'system-images;android-25;google_apis;x86') to pass to `avdmanager create avd --package`.
+  * Required: **yes**.
 * `--android-abi`
- * Android system image abi, i.e. `google_apis/x86_64`.
- * Required: **yes**.
+  * Android system image abi, i.e. `google_apis/x86_64`.
+  * Required: **yes**.
 * `--path-to-config-ini`
- * Path either relative or absolute to the file that will be used as `config.ini` for created emulator.
- * Required: **yes**.
+  * Path either relative or absolute to the file that will be used as `config.ini` for created emulator.
+  * Required: **yes**.
 * `--emulator-start-options`
- * Options to pass to `emulator -avd \$emulatorName` command, i.e. `--no-window -prop persist.sys.language=en -prop persist.sys.country=US`.
- * Required: no.
+  * Options to pass to `emulator -avd \$emulatorName` command, i.e. `--no-window -prop persist.sys.language=en -prop persist.sys.country=US`.
+  * Required: no.
 * `--emulator-start-timeout-seconds`
- * Timeout to wait for emulator to finish boot. Default value is 180 seconds.
- * Required: no.
+  * Timeout to wait for emulator to finish boot. Default value is 180 seconds.
+  * Required: no.
 * `--redirect-logcat-to`
- * Path either relative or absolute to the file that will be used to redirect logcat of started emulator to. No redirection will happen if parameter is not presented.
- * Required: no.
+  * Path either relative or absolute to the file that will be used to redirect logcat of started emulator to. No redirection will happen if parameter is not presented.
+  * Required: no.
 
 ##### Examples
 
