@@ -1,41 +1,38 @@
-## Swarmer — create, start and wait for Android emulator to boot.
+## Swarmer — create, start and wait for Android emulators to boot.
 
-`Swarmer` is basically a replacement for [such bash scripts](https://github.com/travis-ci/travis-cookbooks/blob/master/community-cookbooks/android-sdk/files/default/android-wait-for-emulator) but with features like:
+`Swarmer` is a replacement for [such bash scripts](https://github.com/travis-ci/travis-cookbooks/blob/master/community-cookbooks/android-sdk/files/default/android-wait-for-emulator) but with features like:
 
-* Start multiple Android Emulators and wait for each to boot (in parallel if you want).
+* Start **multiple** Android Emulators and wait for each to boot in parallel.
 * Pass `config.ini` that'll be applied to created emulator.
 * Redirect Logcat output of an emulator to a file.
 
-## How to use:
+## How to use
 
-`Swarmer` shipped as `jar`, to run it you need JVM 1.8+: `java -jar swarmer-latest-version.jar options`.
+`Swarmer` shipped as `jar`, to run it you need JVM 1.8+: `java -jar swarmer-latest-version.jar options`, you need to have Android SDK Tools 25.2.3+.
 
-#### Supported options:
+#### Supported options
+
+##### Required
+
+* `--emulator-name`
+  * Name of the emulator, i.e. `test_emulator_1`.
+* `--package`
+  * Package of the system image for this AVD (e.g.'system-images;android-25;google_apis;x86') to pass to `avdmanager create avd --package`.
+* `--android-abi`
+  * Android system image abi, i.e. `google_apis/x86_64`.
+* `--path-to-config-ini`
+  * Path either relative or absolute to the file that will be used as `config.ini` for created emulator.
+
+##### Optional
 
 * `--help, -help, help, -h`
- * Print help and exit.
- * Required: no.
-* `--emulator-name`
- * Name for the emulator, i.e. `test_emulator_1`.
- * Required: **yes**.
-* `--package`
- * Package of the system image for this AVD (e.g.'system-images;android-25;google_apis;x86') to pass to `avdmanager create avd --package`.
- * Required: **yes**.
-* `--android-abi`
- * Android system image abi, i.e. `google_apis/x86_64`.
- * Required: **yes**.
-* `--path-to-config-ini`
- * Path either relative or absolute to the file that will be used as `config.ini` for created emulator.
- * Required: **yes**.
+  * Print help and exit.
 * `--emulator-start-options`
- * Options to pass to `emulator -avd \$emulatorName` command, i.e. `--no-window -prop persist.sys.language=en -prop persist.sys.country=US`.
- * Required: no.
+  * Options to pass to `emulator -avd \$emulatorName` command, i.e. `--no-window -prop persist.sys.language=en -prop persist.sys.country=US`.
 * `--emulator-start-timeout-seconds`
- * Timeout to wait for emulator to finish boot. Default value is 180 seconds.
- * Required: no.
+  * Timeout to wait for emulator to finish boot. Default value is 180 seconds.
 * `--redirect-logcat-to`
- * Path either relative or absolute to the file that will be used to redirect logcat of started emulator to. No redirection will happen if parameter is not presented.
- * Required: no.
+  * Path either relative or absolute to the file that will be used to redirect logcat of started emulator to. No redirection will happen if parameter is not presented.
 
 ##### Examples
 
@@ -87,6 +84,14 @@ java -jar swarmer-latest-version.jar \
 --path-to-config-ini emulator_config2.ini \
 --emulator-start-options -prop persist.sys.language=en -prop persist.sys.country=US \
 --redirect-logcat-to test_emulator_2_logcat.txt
+```
+
+### How to build
+
+Dependencies: you only need `docker` and `bash` installed on your machine.
+
+```console
+bash ci/build.sh
 ```
 
 ## License
