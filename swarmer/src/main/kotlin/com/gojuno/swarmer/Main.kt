@@ -1,4 +1,4 @@
-package com.gojuno.janulator
+package com.gojuno.swarmer
 
 import com.gojuno.cmd.common.connectedAdbDevices
 import com.gojuno.cmd.common.log
@@ -30,6 +30,6 @@ fun main(vararg rawArgs: String) {
             .toBlocking()
             .firstOrDefault(emptySet())
 
-    log("Janulator: - \"My job is done here, took ${(nanoTime() - startTime).nanosAsSeconds()} seconds, startedEmulators: $startedEmulators, bye bye.\"")
+    log("Swarmer: - \"My job is done here, took ${(nanoTime() - startTime).nanosAsSeconds()} seconds, startedEmulators: $startedEmulators, bye bye.\"")
     System.exit(0) // Force exit, emulator and logcat redirect will keep running as detached processes.
 }

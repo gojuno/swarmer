@@ -1,4 +1,4 @@
-package com.gojuno.janulator
+package com.gojuno.swarmer
 
 import com.beust.jcommander.JCommander
 import com.beust.jcommander.Parameter

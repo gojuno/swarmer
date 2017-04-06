@@ -1,4 +1,4 @@
-package com.gojuno.janulator
+package com.gojuno.swarmer
 
 import com.gojuno.cmd.common.*
 import rx.Observable

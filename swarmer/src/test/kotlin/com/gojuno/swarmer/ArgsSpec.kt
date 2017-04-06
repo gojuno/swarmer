@@ -1,4 +1,4 @@
-package com.gojuno.janulator
+package com.gojuno.swarmer
 
 import org.assertj.core.api.Assertions.assertThat
 import org.jetbrains.spek.api.Spek
