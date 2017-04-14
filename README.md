@@ -86,6 +86,14 @@ java -jar swarmer-latest-version.jar \
 --redirect-logcat-to test_emulator_2_logcat.txt
 ```
 
+### Download
+
+Swarmer is [available on jcenter](https://jcenter.bintray.com/com/gojuno/swarmer).
+
+>You can download it in your CI scripts or store it in your version control system (not recommended).
+
+All the releases and changelogs can be found on [Releases Page](https://github.com/gojuno/swarmer/releases).
+
 ### How to build
 
 Dependencies: you only need `docker` and `bash` installed on your machine.
