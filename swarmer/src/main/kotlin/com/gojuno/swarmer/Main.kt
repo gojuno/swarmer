@@ -1,7 +1,7 @@
 package com.gojuno.swarmer
 
-import com.gojuno.cmd.common.connectedAdbDevices
-import com.gojuno.cmd.common.log
+import com.gojuno.commander.android.connectedAdbDevices
+import com.gojuno.commander.os.log
 import rx.Observable
 import rx.schedulers.Schedulers.io
 import java.lang.System.nanoTime

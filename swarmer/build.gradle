@@ -8,9 +8,10 @@ apply plugin: 'com.jfrog.bintray'
 mainClassName = 'com.gojuno.swarmer.MainKt'
 
 dependencies {
-    compile libraries.cmdCommon
     compile libraries.kotlinStd
     compile libraries.jCommander
+    compile libraries.commanderOs
+    compile libraries.commanderAndroid
     compile libraries.rxJava
 }
 

@@ -1,6 +1,10 @@
 package com.gojuno.swarmer
 
-import com.gojuno.cmd.common.*
+import com.gojuno.commander.android.*
+import com.gojuno.commander.os.Notification
+import com.gojuno.commander.os.home
+import com.gojuno.commander.os.log
+import com.gojuno.commander.os.process
 import rx.Observable
 import rx.schedulers.Schedulers
 import rx.schedulers.Schedulers.io
