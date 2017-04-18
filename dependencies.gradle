@@ -3,6 +3,7 @@ ext.versions = [
 
         rxJava       : '1.2.9',
         jCommander   : '1.66',
+        commander    : '0.1.1',
 
         junit        : '4.12',
         junitPlatform: '1.0.0-M3',
@@ -11,14 +12,14 @@ ext.versions = [
 ]
 
 ext.libraries = [
-        cmdCommon              : project(':cmd-common'),
-
         kotlinStd              : "org.jetbrains.kotlin:kotlin-stdlib:$versions.kotlin",
         kotlinRuntime          : "org.jetbrains.kotlin:kotlin-runtime:$versions.kotlin",
         kotlinReflect          : "org.jetbrains.kotlin:kotlin-reflect:$versions.kotlin",
 
         rxJava                 : "io.reactivex:rxjava:$versions.rxJava",
         jCommander             : "com.beust:jcommander:$versions.jCommander",
+        commanderOs            : "com.gojuno.commander:os:$versions.commander",
+        commanderAndroid       : "com.gojuno.commander:android:$versions.commander",
 
         junit                  : "junit:junit:$versions.junit",
         spek                   : "org.jetbrains.spek:spek-api:$versions.spek",
