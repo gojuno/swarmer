@@ -92,6 +92,11 @@ Swarmer is [available on jcenter](https://jcenter.bintray.com/com/gojuno/swarmer
 
 >You can download it in your CI scripts or store it in your version control system (not recommended).
 
+```console
+SWARMER_VERSION=some-version
+curl --fail --location https://jcenter.bintray.com/com/gojuno/swarmer/swarmer/${SWARMER_VERSION}/swarmer-${SWARMER_VERSION}.jar --output /tmp/swarmer.jar
+```
+
 All the releases and changelogs can be found on [Releases Page](https://github.com/gojuno/swarmer/releases).
 
 ### How to build
