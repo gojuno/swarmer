@@ -1,10 +1,12 @@
-## Swarmer — create, start and wait for Android emulators to boot.
+## Swarmer — create, start and wait for Android emulators to boot in parallel.
 
 `Swarmer` is a replacement for [such bash scripts](https://github.com/travis-ci/travis-cookbooks/blob/master/community-cookbooks/android-sdk/files/default/android-wait-for-emulator) but with features like:
 
 * Start **multiple** Android Emulators and wait for each to boot in parallel.
 * Pass `config.ini` that'll be applied to created emulator.
 * Redirect Logcat output of an emulator to a file.
+
+![Demo](swarmer/swarmer.gif)
 
 ## How to use
 
