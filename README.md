@@ -10,7 +10,7 @@
 
 ## How to use
 
-`Swarmer` shipped as `jar`, to run it you need JVM 1.8+: `java -jar swarmer-latest-version.jar options`, you need to have Android SDK Tools 25.2.3+.
+`Swarmer` shipped as `jar`, to run it you need JVM 1.8+: `java -jar swarmer.jar options`, you need to have Android SDK Tools 25.2.3+.
 
 #### Supported options
 
@@ -41,7 +41,7 @@
 ###### Start one emulator
 
 ```console
-java -jar swarmer-latest-version.jar \
+java -jar swarmer.jar \
 --emulator-name test_emulator_1 \
 --package "system-images;android-25;google_apis;x86" \
 --android-abi google_apis/x86_64 \
@@ -53,7 +53,7 @@ java -jar swarmer-latest-version.jar \
 ###### Start two emulators in parallel
 
 ```console
-java -jar swarmer-latest-version.jar \
+java -jar swarmer.jar \
 --emulator-name test_emulator_1 \
 --package "system-images;android-25;google_apis;x86" \
 --android-abi google_apis/x86_64 \
@@ -71,7 +71,7 @@ java -jar swarmer-latest-version.jar \
 ###### Start two emulators sequentially
 
 ```console
-java -jar swarmer-latest-version.jar \
+java -jar swarmer.jar \
 --emulator-name test_emulator_1 \
 --android-target android-25 \
 --android-abi google_apis/x86_64 \
@@ -79,7 +79,7 @@ java -jar swarmer-latest-version.jar \
 --emulator-start-options -prop persist.sys.language=en -prop persist.sys.country=US \
 --redirect-logcat-to test_emulator_1_logcat.txt
 
-java -jar swarmer-latest-version.jar \
+java -jar swarmer.jar \
 --emulator-name test_emulator_2 \
 --package "system-images;android-23;google_apis;x86" \
 --android-abi google_apis/x86_64 \
