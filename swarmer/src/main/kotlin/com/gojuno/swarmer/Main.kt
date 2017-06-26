@@ -4,10 +4,10 @@ fun main(vararg rawArgs: String) {
     rawArgs.toList().apply {
         when (parseCommand(this)) {
             is Commands.Start -> {
-                startEmulators(parseArguments(this))
+                startEmulators(parseStartArguments(this))
             }
-            Commands.Stop -> {
-                stopAllEmulators()
+            is Commands.Stop -> {
+                stopAllEmulators(parseStopArguments(this))
             }
             Commands.Help -> {
                 printUsage()

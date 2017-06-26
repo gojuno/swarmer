@@ -18,8 +18,10 @@ dependencies {
 dependencies {
     testCompile libraries.spek
     testCompile libraries.spekSubjectExtension
-    testCompile libraries.spekJunitPlatformEngine
+    testRuntime libraries.spekJunitPlatformEngine
     testCompile libraries.assertJ
+    testCompile libraries.mockito
+    testCompile libraries.mockitoKotlin
 }
 
 jar {
