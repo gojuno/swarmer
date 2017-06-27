@@ -10,7 +10,12 @@
 
 ## How to use
 
-`Swarmer` shipped as `jar`, to run it you need JVM 1.8+: `java -jar swarmer.jar options`, you need to have Android SDK Tools 25.2.3+.
+`Swarmer` shipped as `jar`, so just run it `java -jar swarmer.jar options`.
+
+Dependencies:
+
+* JVM 1.8+
+* Android SDK Tools 26.0.0+
 
 #### Supported options
 
