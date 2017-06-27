@@ -15,7 +15,7 @@
 Dependencies:
 
 * JVM 1.8+
-* Android SDK Tools 26.0.0+
+* [Android SDK Tools 26.0.0+](https://developer.android.com/studio/releases/sdk-tools.html)
 
 #### Supported options
 
