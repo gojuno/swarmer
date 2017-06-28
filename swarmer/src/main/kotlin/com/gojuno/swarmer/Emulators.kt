@@ -96,19 +96,27 @@ fun stopAllEmulators(
         args: Commands.Stop,
         connectedEmulators: () -> Single<Set<AdbDevice>> = ::connectedEmulators,
         completableProcess: (List<String>, Pair<Int, TimeUnit>?) -> Completable = ::completableProcess
-) = connectedEmulators()
-        .map { emulators ->
-            emulators.map { emulator ->
-                completableProcess(
-                        listOf(adb, "-s", emulator.id, "emu", "kill"),
-                        args.timeoutSeconds to SECONDS
-                )
+) {
+    val startTime = System.nanoTime()
+
+    connectedEmulators()
+            .map { emulators ->
+                log("Stopping running emulators: $emulators.")
+                emulators.map { emulator ->
+                    completableProcess(
+                            listOf(adb, "-s", emulator.id, "emu", "kill"),
+                            args.timeoutSeconds to SECONDS
+                    )
+                            .doOnCompleted { log("Stopped emulator $emulator.") }
+                }
             }
-        }
-        .flatMapCompletable(Completable::merge)
-        .doOnError { log("Error during all emulators stop, error = $it") }
-        .doOnCompleted { log("All emulators stopped") }
-        .await()
+            .flatMapCompletable(Completable::merge)
+            .doOnError { log("Error during stopping emulators, error = $it.") }
+            .doOnCompleted { log("All emulators stopped.") }
+            .await()
+
+    log("Swarmer: - \"My job is done here, took ${(System.nanoTime() - startTime).nanosAsSeconds()} seconds, bye bye.\"")
+}
 
 private fun completableProcess(args: List<String>, timeout: Pair<Int, TimeUnit>?) =
         process(args, timeout)
