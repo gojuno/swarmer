@@ -17,9 +17,17 @@ Dependencies:
 * JVM 1.8+
 * [Android SDK Tools 26.0.0+](https://developer.android.com/studio/releases/sdk-tools.html)
 
-#### Supported options
+### Commands
 
-##### Required
+#### Start
+
+```console
+java -jar swarmer.jar start …
+```
+
+##### Options
+
+###### Required
 
 * `--emulator-name`
   * Name of the emulator, i.e. `test_emulator_1`.
@@ -30,7 +38,7 @@ Dependencies:
 * `--path-to-config-ini`
   * Path either relative or absolute to the file that will be used as `config.ini` for created emulator.
 
-##### Optional
+###### Optional
 
 * `--help, -help, help, -h`
   * Print help and exit.
@@ -46,7 +54,7 @@ Dependencies:
 ###### Start one emulator
 
 ```console
-java -jar swarmer.jar \
+java -jar swarmer.jar start \
 --emulator-name test_emulator_1 \
 --package "system-images;android-25;google_apis;x86" \
 --android-abi google_apis/x86_64 \
@@ -58,13 +66,14 @@ java -jar swarmer.jar \
 ###### Start two emulators in parallel
 
 ```console
-java -jar swarmer.jar \
+java -jar swarmer.jar start \
 --emulator-name test_emulator_1 \
 --package "system-images;android-25;google_apis;x86" \
 --android-abi google_apis/x86_64 \
 --path-to-config-ini emulator_config1.ini \
 --emulator-start-options -prop persist.sys.language=en -prop persist.sys.country=US \
---redirect-logcat-to test_emulator_1_logcat.txt
+--redirect-logcat-to test_emulator_1_logcat.txt \
+start \
 --emulator-name test_emulator_2 \
 --package "system-images;android-23;google_apis;x86" \
 --android-abi google_apis/x86_64 \
@@ -76,7 +85,7 @@ java -jar swarmer.jar \
 ###### Start two emulators sequentially
 
 ```console
-java -jar swarmer.jar \
+java -jar swarmer.jar start \
 --emulator-name test_emulator_1 \
 --android-target android-25 \
 --android-abi google_apis/x86_64 \
@@ -84,13 +93,32 @@ java -jar swarmer.jar \
 --emulator-start-options -prop persist.sys.language=en -prop persist.sys.country=US \
 --redirect-logcat-to test_emulator_1_logcat.txt
 
-java -jar swarmer.jar \
+java -jar swarmer.jar start \
 --emulator-name test_emulator_2 \
 --package "system-images;android-23;google_apis;x86" \
 --android-abi google_apis/x86_64 \
 --path-to-config-ini emulator_config2.ini \
 --emulator-start-options -prop persist.sys.language=en -prop persist.sys.country=US \
 --redirect-logcat-to test_emulator_2_logcat.txt
+```
+
+#### Stop
+
+```console
+java -jar swarmer.jar stop …
+```
+
+##### Options
+
+###### Optional
+
+* `--timeout`
+  * Timeout for emulators to stop in seconds, default is 15 seconds.
+
+###### Stop all running emulators
+
+```console
+java -jar swarmer.jar stop --timeout 10
 ```
 
 ### Download
