@@ -5,12 +5,15 @@ import com.gojuno.commander.os.Notification
 import com.gojuno.commander.os.home
 import com.gojuno.commander.os.log
 import com.gojuno.commander.os.process
+import rx.Completable
 import rx.Observable
+import rx.Single
 import rx.schedulers.Schedulers
 import rx.schedulers.Schedulers.io
 import java.io.File
 import java.lang.System.nanoTime
 import java.util.concurrent.Semaphore
+import java.util.concurrent.TimeUnit
 import java.util.concurrent.TimeUnit.*
 import java.util.concurrent.TimeoutException
 import java.util.concurrent.atomic.AtomicLong
@@ -24,49 +27,95 @@ data class Emulator(
         val name: String
 )
 
-fun startEmulator(args: Args, availablePortsSemaphore: Semaphore): Observable<Emulator> {
-    return createAvd(args)
-            .flatMap { applyConfig(args) }
-            .map { availablePortsSemaphore.acquire() }
-            .flatMap { findAvailablePortsForNewEmulator() }
-            .doOnNext { log("Ports for emulator ${args.emulatorName}: ${it.first}, ${it.second}.") }
-            .flatMap { ports ->
-                val emulatorProcess = process(
-                        // Unix only, PR welcome.
-                        listOf(sh, "-c", "$emulator -verbose -avd ${args.emulatorName} -ports ${ports.first},${ports.second} ${args.emulatorStartOptions.joinToString(" ")} &"),
-                        timeout = null,
-                        redirectOutputTo = outputFileForEmulator(args)
-                )
-                waitForEmulatorToStart(args, emulatorProcess, ports)
-            }
-            .map { emulator -> availablePortsSemaphore.release().let { emulator } }
-            .flatMap { emulator ->
-                when (args.redirectLogcatTo) {
-                    null -> Observable.just(emulator)
-                    else -> {
-                        val adbDevice = AdbDevice(id = emulator.id, online = true)
-                        val logcatFile = File(args.redirectLogcatTo)
+fun startEmulators(args: List<Commands.Start>) {
+    val startTime = System.nanoTime()
 
-                        adbDevice
-                                .redirectLogcatToFile(logcatFile)
-                                .doOnSubscribe { adbDevice.log("Redirecting logcat output to file $logcatFile") }
-                                .toObservable()
-                                .subscribeOn(Schedulers.io())
-                                .map { emulator }
-                    }
-                }
+    // Sometimes on Linux "emulator -verbose -avd" does not print serial id of started emulator,
+    // so by allocating ports manually we know which serial id emulator will have.
+    val availablePortsSemaphore = Semaphore(1)
+
+    val startedEmulators = connectedAdbDevices()
+            .doOnNext { log("Already running emulators: $it") }
+            .flatMap {
+                val startEmulators: List<Observable<Emulator>> = args
+                        .map { startEmulator(it, availablePortsSemaphore) }
+                        .map { it.subscribeOn(Schedulers.io()) } // So each emulator will start in parallel.
+                        .map { it.doOnNext { log("Emulator $it is ready.") } }
+
+                Observable.zip(startEmulators, { startedEmulator -> startedEmulator })
             }
-            .flatMap { waitForEmulatorToFinishBoot(it) }
-            .timeout(args.emulatorStartTimeoutSeconds, SECONDS)
-            .doOnError {
-                when (it) {
-                    is TimeoutException -> println("Timeout ${args.emulatorStartTimeoutSeconds} seconds, failed to start emulator ${args.emulatorName}.")
-                    else -> Unit
-                }
-            }
+            .map { it.map { it as Emulator }.toSet() }
+            .toBlocking()
+            .firstOrDefault(emptySet())
+
+    log("Swarmer: - \"My job is done here, took ${(System.nanoTime() - startTime).nanosAsSeconds()} seconds, startedEmulators: $startedEmulators, bye bye.\"")
 }
 
-private fun createAvd(args: Args): Observable<Unit> {
+private fun startEmulator(args: Commands.Start, availablePortsSemaphore: Semaphore): Observable<Emulator> =
+        createAvd(args)
+                .flatMap { applyConfig(args) }
+                .map { availablePortsSemaphore.acquire() }
+                .flatMap { findAvailablePortsForNewEmulator() }
+                .doOnNext { log("Ports for emulator ${args.emulatorName}: ${it.first}, ${it.second}.") }
+                .flatMap { ports ->
+                    val emulatorProcess = process(
+                            // Unix only, PR welcome.
+                            listOf(sh, "-c", "$emulator -verbose -avd ${args.emulatorName} -ports ${ports.first},${ports.second} ${args.emulatorStartOptions.joinToString(" ")} &"),
+                            timeout = null,
+                            redirectOutputTo = outputFileForEmulator(args)
+                    )
+                    waitForEmulatorToStart(args, emulatorProcess, ports)
+                }
+                .map { emulator -> availablePortsSemaphore.release().let { emulator } }
+                .flatMap { emulator ->
+                    when (args.redirectLogcatTo) {
+                        null -> Observable.just(emulator)
+                        else -> {
+                            val adbDevice = AdbDevice(id = emulator.id, online = true)
+                            val logcatFile = File(args.redirectLogcatTo)
+
+                            adbDevice
+                                    .redirectLogcatToFile(logcatFile)
+                                    .doOnSubscribe { adbDevice.log("Redirecting logcat output to file $logcatFile") }
+                                    .toObservable()
+                                    .subscribeOn(Schedulers.io())
+                                    .map { emulator }
+                        }
+                    }
+                }
+                .flatMap { waitForEmulatorToFinishBoot(it) }
+                .timeout(args.emulatorStartTimeoutSeconds, SECONDS)
+                .doOnError {
+                    when (it) {
+                        is TimeoutException -> println("Timeout ${args.emulatorStartTimeoutSeconds} seconds, failed to start emulator ${args.emulatorName}.")
+                        else -> Unit
+                    }
+                }
+
+fun stopAllEmulators(
+        args: Commands.Stop,
+        connectedEmulators: () -> Single<Set<AdbDevice>> = ::connectedEmulators,
+        completableProcess: (List<String>, Pair<Int, TimeUnit>?) -> Completable = ::completableProcess
+) = connectedEmulators()
+        .map { emulators ->
+            emulators.map { emulator ->
+                completableProcess(
+                        listOf(adb, "-s", emulator.id, "emu", "kill"),
+                        args.timeoutSeconds to SECONDS
+                )
+            }
+        }
+        .flatMapCompletable(Completable::merge)
+        .doOnError { log("Error during all emulators stop, error = $it") }
+        .doOnCompleted { log("All emulators stopped") }
+        .await()
+
+private fun completableProcess(args: List<String>, timeout: Pair<Int, TimeUnit>?) =
+        process(args, timeout)
+                .filter { it is Notification.Exit }
+                .toCompletable()
+
+private fun createAvd(args: Commands.Start): Observable<Unit> {
     val createAvdProcess = process(
             listOf(
                     avdManager, "create",
@@ -101,7 +150,7 @@ private fun createAvd(args: Args): Observable<Unit> {
             .doOnError { log("Could not create avd ${args.emulatorName}, error = $it") }
 }
 
-private fun applyConfig(args: Args): Observable<Unit> = Observable
+private fun applyConfig(args: Commands.Start): Observable<Unit> = Observable
         .fromCallable {
             File(args.pathToConfigIni)
                     .copyTo(File("$home/.android/avd/${args.emulatorName}.avd/config.ini"), overwrite = true)
@@ -118,13 +167,12 @@ private fun findAvailablePortsForNewEmulator(): Observable<Pair<Int, Int>> = con
                         .map { it.id }
                         .map { it.substringAfter("emulator-") }
                         .map { it.toInt() }
-                        .max()!!
-                        .let { it + 2 }
+                        .max()!! + 2
             }
         }
         .map { it to it + 1 }
 
-private fun waitForEmulatorToStart(args: Args, emulatorProcess: Observable<Notification>, ports: Pair<Int, Int>): Observable<Emulator> {
+private fun waitForEmulatorToStart(args: Commands.Start, emulatorProcess: Observable<Notification>, ports: Pair<Int, Int>): Observable<Emulator> {
     val startTime = AtomicLong()
 
     return emulatorProcess
@@ -166,12 +214,11 @@ private fun waitForEmulatorToFinishBoot(targetEmulator: Emulator): Observable<Em
 
     return Observable
             .interval(1500, MILLISECONDS)
-            .switchMap { connectedAdbDevices() }
-            .map { it.filter { it.isEmulator } }
+            .switchMap { connectedEmulators().toObservable() }
             .switchMap { runningEmulators ->
                 val emulator = runningEmulators.firstOrNull { it.id == targetEmulator.id }
 
-                if (emulator == null || emulator.online == false) {
+                if (emulator == null || !emulator.online) {
                     Observable.never()
                 } else {
                     process(
@@ -201,7 +248,10 @@ private fun waitForEmulatorToFinishBoot(targetEmulator: Emulator): Observable<Em
             .doOnError { log("Error during start of the emulator $targetEmulator, error = $it.") }
 }
 
-fun Long.nanosAsSeconds(): Float = NANOSECONDS.toMillis(this) / 1000f
+private fun Long.nanosAsSeconds(): Float = NANOSECONDS.toMillis(this) / 1000f
 
-private fun outputFileForEmulator(args: Args) = File("${args.emulatorName}.output")
+private fun outputFileForEmulator(args: Commands.Start) = File("${args.emulatorName}.output")
         .apply { deleteOnExit() }
+
+private fun connectedEmulators(): Single<Set<AdbDevice>> =
+        connectedAdbDevices().take(1).toSingle().map { it.filter { it.isEmulator }.toSet() }
