@@ -73,7 +73,6 @@ java -jar swarmer.jar start \
 --path-to-config-ini emulator_config1.ini \
 --emulator-start-options -prop persist.sys.language=en -prop persist.sys.country=US \
 --redirect-logcat-to test_emulator_1_logcat.txt \
-start \
 --emulator-name test_emulator_2 \
 --package "system-images;android-23;google_apis;x86" \
 --android-abi google_apis/x86_64 \
