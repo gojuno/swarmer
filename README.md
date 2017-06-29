@@ -133,6 +133,12 @@ curl --fail --location https://jcenter.bintray.com/com/gojuno/swarmer/swarmer/${
 
 All the releases and changelogs can be found on [Releases Page](https://github.com/gojuno/swarmer/releases).
 
+### Composer
+
+Swarmer works great in combination with [Composer][composer] — another tool we've built at Juno.
+
+[Composer][composer] can run Android Instrumentation tests in parallel on multiple connected devices/emulators. In our [CI Pipeline][ci pipeline] we start emulators with Swarmer and then Composer runs tests on them.
+
 ### How to build
 
 Dependencies: you only need `docker` and `bash` installed on your machine.
@@ -158,3 +164,6 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 ```
+
+[composer]: https://github.com/gojuno/composer
+[ci pipeline]: https://github.com/gojuno/engineering/tree/master/articles/ci_pipeline_and_custom_tools_of_android_projects
