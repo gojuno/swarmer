@@ -2,7 +2,6 @@ package com.gojuno.swarmer
 
 import org.assertj.core.api.Assertions.assertThat
 import org.jetbrains.spek.api.Spek
-import org.jetbrains.spek.api.dsl.SpecBody
 import org.jetbrains.spek.api.dsl.it
 import org.jetbrains.spek.api.dsl.on
 
@@ -28,21 +27,6 @@ class ArgsSpec : Spek({
                     androidAbi = "test_android_abi",
                     pathToConfigIni = "test_path_to_config_ini"
             )))
-        }
-    }
-
-    fun SpecBody.onEmulatorNameVariants() {
-        listOf("a", "b").forEach {
-            //            evaluateBody(it)
-            if (it == "a") {
-                it("is a") {
-
-                }
-            } else {
-                it("is b") {
-
-                }
-            }
         }
     }
 
