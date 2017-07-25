@@ -37,6 +37,8 @@ java -jar swarmer.jar start …
   * Android system image abi, i.e. `google_apis/x86_64`.
 * `--path-to-config-ini`
   * Path either relative or absolute to the file that will be used as `config.ini` for created emulator.
+  * Easiest way to get `config.ini` is to create AVD on your machine using Android Studio and then copy config from `~/.android/avd/device_name.avd/config.ini`.
+  * We recommend to keep `config.ini` in version control so your team members could review it and builds will be reproducible.
 
 ###### Optional
 
