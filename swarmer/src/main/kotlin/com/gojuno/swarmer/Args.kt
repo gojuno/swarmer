@@ -87,7 +87,16 @@ sealed class Commands {
                     description = "Path either relative or absolute to the file that will be used to redirect logcat of started emulator to. No redirection will happen if parameter is not presented.",
                     order = 7
             )
-            var redirectLogcatTo: String? = null
+            var redirectLogcatTo: String? = null,
+
+            @Parameter(
+                    names = arrayOf("--verbose"),
+                    required = false,
+                    description = "Print verbose emulator initialization messages.",
+                    order = 8
+            )
+            var verbose: Boolean = false
+
     ) : Commands()
 
     @Parameters(
@@ -119,9 +128,9 @@ fun parseStartArguments(rawArgs: List<String>): List<Commands.Start> =
                         }
                     }
                 }
-                .map {
+                .map { args ->
                     Commands.Start().also { command ->
-                        JCommander(command).parse(*it.toTypedArray())
+                        JCommander(command).parse(*args.toTypedArray())
                     }
                 }
 

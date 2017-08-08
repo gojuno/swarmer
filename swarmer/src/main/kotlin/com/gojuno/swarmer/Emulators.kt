@@ -60,7 +60,7 @@ private fun startEmulator(args: Commands.Start, availablePortsSemaphore: Semapho
                 .flatMap { ports ->
                     val emulatorProcess = process(
                             // Unix only, PR welcome.
-                            listOf(sh, "-c", "$emulator -verbose -avd ${args.emulatorName} -ports ${ports.first},${ports.second} ${args.emulatorStartOptions.joinToString(" ")} &"),
+                            listOf(sh, "-c", "$emulator ${if (args.verbose) "-verbose" else ""} -avd ${args.emulatorName} -ports ${ports.first},${ports.second} ${args.emulatorStartOptions.joinToString(" ")} &"),
                             timeout = null,
                             redirectOutputTo = outputFileForEmulator(args)
                     )
@@ -83,7 +83,7 @@ private fun startEmulator(args: Commands.Start, availablePortsSemaphore: Semapho
                         }
                     }
                 }
-                .flatMap { waitForEmulatorToFinishBoot(it) }
+                .flatMap(::waitForEmulatorToFinishBoot)
                 .timeout(args.emulatorStartTimeoutSeconds, SECONDS)
                 .doOnError {
                     when (it) {

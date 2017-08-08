@@ -14,6 +14,13 @@ class ArgsSpec : Spek({
             "--path-to-config-ini", "test_path_to_config_ini"
     )
 
+    val OPTIONAL_ARGS = listOf(
+            "--emulator-start-options", "-prop option=value",
+            "--emulator-start-timeout-seconds", "180",
+            "--redirect-logcat-to", "logcat.txt",
+            "--verbose"
+    )
+
     on("parse args with only required fields") {
 
         val result by memoized {
@@ -26,6 +33,26 @@ class ArgsSpec : Spek({
                     pakage = "test_android_package",
                     androidAbi = "test_android_abi",
                     pathToConfigIni = "test_path_to_config_ini"
+            )))
+        }
+    }
+
+    on("parse args with all fields") {
+
+        val result by memoized {
+            parseStartArguments(listOf("start") + REQUIRED_ARGS + OPTIONAL_ARGS)
+        }
+
+        it("parses passed args and uses default values for non-required fields") {
+            assertThat(result).isEqualTo(listOf(Commands.Start(
+                    emulatorName = "test_emulator_name",
+                    pakage = "test_android_package",
+                    androidAbi = "test_android_abi",
+                    pathToConfigIni = "test_path_to_config_ini",
+                    emulatorStartOptions = listOf("-prop", "option=value"),
+                    emulatorStartTimeoutSeconds = 180L,
+                    redirectLogcatTo = "logcat.txt",
+                    verbose = true
             )))
         }
     }
