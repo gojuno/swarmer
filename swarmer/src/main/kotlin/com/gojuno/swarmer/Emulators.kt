@@ -20,14 +20,23 @@ import java.util.concurrent.atomic.AtomicLong
 
 val sh: String = "/bin/sh"
 val avdManager: String = "$androidHome/tools/bin/avdmanager"
-val emulator: String = "$androidHome/tools/emulator"
 
 data class Emulator(
         val id: String,
         val name: String
 )
 
-fun startEmulators(args: List<Commands.Start>) {
+fun startEmulators(
+        args: List<Commands.Start>,
+        connectedAdbDevices: () -> Observable<Set<AdbDevice>> = ::connectedAdbDevices,
+        createAvd: (args: Commands.Start) -> Observable<Unit> = ::createAvd,
+        applyConfig: (args: Commands.Start) -> Observable<Unit> = ::applyConfig,
+        emulator: () -> String = { "$androidHome/tools/emulator" },
+        findAvailablePortsForNewEmulator: () -> Observable<Pair<Int, Int>> = ::findAvailablePortsForNewEmulator,
+        startEmulatorProcess: (List<String>, File?) -> Observable<Notification> = ::startEmulatorProcess,
+        waitForEmulatorToStart: (Commands.Start, () -> Observable<Set<AdbDevice>>, Observable<Notification>, Pair<Int, Int>) -> Observable<Emulator> = ::waitForEmulatorToStart,
+        waitForEmulatorToFinishBoot: (Emulator) -> Observable<Emulator> = ::waitForEmulatorToFinishBoot
+) {
     val startTime = System.nanoTime()
 
     // Sometimes on Linux "emulator -verbose -avd" does not print serial id of started emulator,
@@ -38,7 +47,20 @@ fun startEmulators(args: List<Commands.Start>) {
             .doOnNext { log("Already running emulators: $it") }
             .flatMap {
                 val startEmulators: List<Observable<Emulator>> = args
-                        .map { startEmulator(it, availablePortsSemaphore) }
+                        .map { command ->
+                            startEmulator(
+                                    args = command,
+                                    createAvd = createAvd,
+                                    applyConfig = applyConfig,
+                                    availablePortsSemaphore = availablePortsSemaphore,
+                                    findAvailablePortsForNewEmulator = findAvailablePortsForNewEmulator,
+                                    startEmulatorProcess = startEmulatorProcess,
+                                    waitForEmulatorToStart = waitForEmulatorToStart,
+                                    connectedAdbDevices = connectedAdbDevices,
+                                    emulator = emulator,
+                                    waitForEmulatorToFinishBoot = waitForEmulatorToFinishBoot
+                            )
+                        }
                         .map { it.subscribeOn(Schedulers.io()) } // So each emulator will start in parallel.
                         .map { it.doOnNext { log("Emulator $it is ready.") } }
 
@@ -51,20 +73,34 @@ fun startEmulators(args: List<Commands.Start>) {
     log("Swarmer: - \"My job is done here, took ${(System.nanoTime() - startTime).nanosAsSeconds()} seconds, startedEmulators: $startedEmulators, bye bye.\"")
 }
 
-private fun startEmulator(args: Commands.Start, availablePortsSemaphore: Semaphore): Observable<Emulator> =
+private fun startEmulatorProcess(args: List<String>, redirectOutputTo: File?) =
+        process(args, null, redirectOutputTo)
+
+private fun startEmulator(
+        args: Commands.Start,
+        createAvd: (args: Commands.Start) -> Observable<Unit>,
+        applyConfig: (args: Commands.Start) -> Observable<Unit>,
+        availablePortsSemaphore: Semaphore,
+        findAvailablePortsForNewEmulator: () -> Observable<Pair<Int, Int>>,
+        startEmulatorProcess: (List<String>, File?) -> Observable<Notification>,
+        waitForEmulatorToStart: (Commands.Start, () -> Observable<Set<AdbDevice>>, Observable<Notification>, Pair<Int, Int>) -> Observable<Emulator>,
+        connectedAdbDevices: () -> Observable<Set<AdbDevice>> = ::connectedAdbDevices,
+        emulator: () -> String,
+        waitForEmulatorToFinishBoot: (Emulator) -> Observable<Emulator>
+): Observable<Emulator> =
         createAvd(args)
                 .flatMap { applyConfig(args) }
                 .map { availablePortsSemaphore.acquire() }
                 .flatMap { findAvailablePortsForNewEmulator() }
                 .doOnNext { log("Ports for emulator ${args.emulatorName}: ${it.first}, ${it.second}.") }
                 .flatMap { ports ->
-                    val emulatorProcess = process(
+                    startEmulatorProcess(
                             // Unix only, PR welcome.
-                            listOf(sh, "-c", "$emulator -verbose -avd ${args.emulatorName} -ports ${ports.first},${ports.second} ${args.emulatorStartOptions.joinToString(" ")} &"),
-                            timeout = null,
-                            redirectOutputTo = outputFileForEmulator(args)
-                    )
-                    waitForEmulatorToStart(args, emulatorProcess, ports)
+                            listOf(sh, "-c", "${emulator()} ${if (args.verbose) "-verbose" else ""} -avd ${args.emulatorName} -ports ${ports.first},${ports.second} ${args.emulatorStartOptions.joinToString(" ")} &"),
+                            outputFileForEmulator(args)
+                    ).let { process ->
+                        waitForEmulatorToStart(args, connectedAdbDevices, process, ports)
+                    }
                 }
                 .map { emulator -> availablePortsSemaphore.release().let { emulator } }
                 .flatMap { emulator ->
@@ -83,7 +119,7 @@ private fun startEmulator(args: Commands.Start, availablePortsSemaphore: Semapho
                         }
                     }
                 }
-                .flatMap { waitForEmulatorToFinishBoot(it) }
+                .flatMap(waitForEmulatorToFinishBoot)
                 .timeout(args.emulatorStartTimeoutSeconds, SECONDS)
                 .doOnError {
                     when (it) {
@@ -180,7 +216,12 @@ private fun findAvailablePortsForNewEmulator(): Observable<Pair<Int, Int>> = con
         }
         .map { it to it + 1 }
 
-private fun waitForEmulatorToStart(args: Commands.Start, emulatorProcess: Observable<Notification>, ports: Pair<Int, Int>): Observable<Emulator> {
+private fun waitForEmulatorToStart(
+        args: Commands.Start,
+        connectedAdbDevices: () -> Observable<Set<AdbDevice>>,
+        emulatorProcess: Observable<Notification>,
+        ports: Pair<Int, Int>
+): Observable<Emulator> {
     val startTime = AtomicLong()
 
     return emulatorProcess
