@@ -18,7 +18,7 @@ class ArgsSpec : Spek({
             "--emulator-start-options", "-prop option=value",
             "--emulator-start-timeout-seconds", "180",
             "--redirect-logcat-to", "logcat.txt",
-            "--verbose"
+            "--verbose-emulator"
     )
 
     on("parse args with only required fields") {
@@ -49,7 +49,7 @@ class ArgsSpec : Spek({
                     pakage = "test_android_package",
                     androidAbi = "test_android_abi",
                     pathToConfigIni = "test_path_to_config_ini",
-                    emulatorStartOptions = listOf("-prop", "option=value"),
+                    emulatorStartOptions = listOf("-prop option=value"),
                     emulatorStartTimeoutSeconds = 180L,
                     redirectLogcatTo = "logcat.txt",
                     verbose = true

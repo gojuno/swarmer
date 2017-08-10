@@ -90,7 +90,7 @@ sealed class Commands {
             var redirectLogcatTo: String? = null,
 
             @Parameter(
-                    names = arrayOf("--verbose"),
+                    names = arrayOf("--verbose-emulator"),
                     required = false,
                     description = "Print verbose emulator initialization messages.",
                     order = 8

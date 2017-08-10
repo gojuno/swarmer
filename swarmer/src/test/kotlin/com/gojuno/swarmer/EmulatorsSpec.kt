@@ -2,15 +2,15 @@ package com.gojuno.swarmer
 
 import com.gojuno.commander.android.AdbDevice
 import com.gojuno.commander.android.adb
-import com.nhaarman.mockito_kotlin.any
-import com.nhaarman.mockito_kotlin.mock
-import com.nhaarman.mockito_kotlin.whenever
+import com.gojuno.commander.os.Notification
+import com.nhaarman.mockito_kotlin.*
 import org.jetbrains.spek.api.Spek
 import org.jetbrains.spek.api.dsl.describe
 import org.jetbrains.spek.api.dsl.it
-import org.mockito.Mockito
 import rx.Completable
+import rx.Observable
 import rx.Single
+import java.io.File
 import java.util.concurrent.TimeUnit
 
 class EmulatorsSpec : Spek({
@@ -46,11 +46,136 @@ class EmulatorsSpec : Spek({
 
             ADB_DEVICES.forEach { device ->
                 it("should call stop command for emulator ${device.id}") {
-                    Mockito.verify(startProcess).invoke(
+                    verify(startProcess).invoke(
                             listOf(adb, "-s", device.id, "emu", "kill"),
                             command.timeoutSeconds to TimeUnit.SECONDS
                     )
                 }
+            }
+        }
+    }
+
+    val START_COMMANDS = listOf(
+            Commands.Start(
+                    emulatorName = "emulator_1",
+                    pakage = "system-images;android-25;google_apis;x86",
+                    androidAbi = "google_apis/x86_64",
+                    pathToConfigIni = "config.ini",
+                    emulatorStartOptions = listOf("--no-window"),
+                    emulatorStartTimeoutSeconds = 45L,
+                    verbose = true
+            ),
+            Commands.Start(
+                    emulatorName = "emulator_2",
+                    pakage = "system-images;android-25;google_apis;x86",
+                    androidAbi = "google_apis/x86_64",
+                    pathToConfigIni = "config2.ini",
+                    emulatorStartOptions = listOf("--no-window"),
+                    emulatorStartTimeoutSeconds = 45L,
+                    verbose = true
+            ),
+            Commands.Start(
+                    emulatorName = "emulator_3",
+                    pakage = "system-images;android-25;google_apis;x86",
+                    androidAbi = "google_apis/x86",
+                    pathToConfigIni = "config3.ini",
+                    emulatorStartOptions = listOf("--no-window --some option"),
+                    emulatorStartTimeoutSeconds = 60L,
+                    verbose = false
+            )
+    )
+
+    val EMULATOR_PORTS = Pair(12, 34)
+
+    describe("start emulators command called") {
+        val connectedAdbDevices by memoized {
+            { Observable.just(emptySet<AdbDevice>()) }
+        }
+
+        val outputFile by memoized {
+            File("")
+        }
+
+        val process by memoized {
+            mock<Process>()
+        }
+
+        val createAvd by memoized {
+            mock<(Commands.Start) -> Observable<Unit>>().apply {
+                whenever(invoke(any())).thenReturn(Observable.just(Unit))
+            }
+        }
+
+        val applyConfig by memoized {
+            mock<(Commands.Start) -> Observable<Unit>>().apply {
+                whenever(invoke(any())).thenReturn(Observable.just(Unit))
+            }
+        }
+
+        val emulator by memoized {
+            mock<() -> String>().apply { whenever(invoke()).thenReturn("/path/to/emulator/binary") }
+        }
+
+        val startEmulatorsProcess by memoized {
+            mock<(List<String>, File?) -> Observable<Notification>>().apply {
+                whenever(invoke(any(), any())).thenReturn(Observable.just(
+                        Notification.Start(process, outputFile),
+                        Notification.Exit(outputFile)
+                ))
+            }
+        }
+
+        val waitForEmulatorToStart by memoized {
+            val commandCaptor = argumentCaptor<Commands.Start>()
+
+            mock<(Commands.Start, () -> Observable<Set<AdbDevice>>, Observable<Notification>, Pair<Int, Int>) -> Observable<Emulator>>().apply {
+                whenever(invoke(commandCaptor.capture(), any(), any(), any())).thenAnswer {
+                    Observable.just(
+                            Emulator("emulator-${EMULATOR_PORTS.first}", commandCaptor.firstValue.emulatorName)
+                    )
+                }
+            }
+        }
+
+        val waitForEmulatorToFinishBoot by memoized {
+            val emulatorCaptor = argumentCaptor<Emulator>()
+
+            mock<(Emulator) -> Observable<Emulator>>().apply {
+                whenever(invoke(emulatorCaptor.capture())).thenAnswer {
+                    Observable.just(emulatorCaptor.firstValue)
+                }
+            }
+        }
+
+        val findAvailablePortsForNewEmulator by memoized {
+            mock<() -> Observable<Pair<Int, Int>>>().apply {
+                whenever(invoke()).thenReturn(Observable.just(EMULATOR_PORTS))
+            }
+        }
+
+        beforeEachTest {
+            startEmulators(
+                    args = START_COMMANDS,
+                    connectedAdbDevices = connectedAdbDevices,
+                    createAvd = createAvd,
+                    applyConfig = applyConfig,
+                    emulator = emulator,
+                    startEmulatorProcess = startEmulatorsProcess,
+                    waitForEmulatorToStart = waitForEmulatorToStart,
+                    findAvailablePortsForNewEmulator = findAvailablePortsForNewEmulator,
+                    waitForEmulatorToFinishBoot = waitForEmulatorToFinishBoot
+            )
+        }
+
+        START_COMMANDS.forEach { command ->
+            it("should start emulators") {
+                verify(startEmulatorsProcess).invoke(
+                        listOf(
+                                "/bin/sh", "-c",
+                                "${emulator()} ${if (command.verbose) "-verbose" else ""} -avd ${command.emulatorName} -ports ${EMULATOR_PORTS.first},${EMULATOR_PORTS.second} ${command.emulatorStartOptions.joinToString(" ")} &"
+                        ),
+                        File("${command.emulatorName}.output")
+                )
             }
         }
     }
