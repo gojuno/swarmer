@@ -299,8 +299,10 @@ private fun waitForEmulatorToFinishBoot(targetEmulator: Emulator): Observable<Em
 
 private fun Long.nanosAsSeconds(): Float = NANOSECONDS.toMillis(this) / 1000f
 
-private fun outputFileForEmulator(args: Commands.Start) = File("${args.emulatorName}.output")
-        .apply { deleteOnExit() }
+private fun outputFileForEmulator(args: Commands.Start) =
+        File(args.redirectOutputTo ?: "", "${args.emulatorName}.output").apply {
+            if (!args.keepOutputOnExit) deleteOnExit()
+        }
 
 private fun connectedEmulators(): Single<Set<AdbDevice>> =
         connectedAdbDevices().take(1).toSingle().map { it.filter { it.isEmulator }.toSet() }

@@ -63,7 +63,9 @@ class EmulatorsSpec : Spek({
                     pathToConfigIni = "config.ini",
                     emulatorStartOptions = listOf("--no-window"),
                     emulatorStartTimeoutSeconds = 45L,
-                    verbose = true
+                    redirectOutputTo = "output-dir",
+                    verbose = true,
+                    keepOutputOnExit = true
             ),
             Commands.Start(
                     emulatorName = "emulator_2",
@@ -72,6 +74,7 @@ class EmulatorsSpec : Spek({
                     pathToConfigIni = "config2.ini",
                     emulatorStartOptions = listOf("--no-window"),
                     emulatorStartTimeoutSeconds = 45L,
+                    redirectOutputTo = "output-dir",
                     verbose = true
             ),
             Commands.Start(
@@ -81,7 +84,8 @@ class EmulatorsSpec : Spek({
                     pathToConfigIni = "config3.ini",
                     emulatorStartOptions = listOf("--no-window --some option"),
                     emulatorStartTimeoutSeconds = 60L,
-                    verbose = false
+                    verbose = false,
+                    keepOutputOnExit = true
             )
     )
 
@@ -174,7 +178,7 @@ class EmulatorsSpec : Spek({
                                 "/bin/sh", "-c",
                                 "${emulator()} ${if (command.verbose) "-verbose" else ""} -avd ${command.emulatorName} -ports ${EMULATOR_PORTS.first},${EMULATOR_PORTS.second} ${command.emulatorStartOptions.joinToString(" ")} &"
                         ),
-                        File("${command.emulatorName}.output")
+                        File(command.redirectOutputTo ?: "", "${command.emulatorName}.output")
                 )
             }
         }

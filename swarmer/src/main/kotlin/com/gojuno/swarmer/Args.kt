@@ -3,6 +3,8 @@ package com.gojuno.swarmer
 import com.beust.jcommander.JCommander
 import com.beust.jcommander.Parameter
 import com.beust.jcommander.Parameters
+import java.util.*
+import java.util.Collections.emptyList
 
 // No way to share array both for runtime and annotation without reflection.
 private const val PARAMETER_EMULATOR_NAME = "--emulator-name"
@@ -90,12 +92,28 @@ sealed class Commands {
             var redirectLogcatTo: String? = null,
 
             @Parameter(
+                    names = arrayOf("--redirect-output-to"),
+                    required = false,
+                    description = "Path either relative or absolute to the directory that will be used to redirect emulator command output. No redirection will happen if parameter is not presented.",
+                    order = 8
+            )
+            var redirectOutputTo: String? = null,
+
+            @Parameter(
                     names = arrayOf("--verbose-emulator"),
                     required = false,
                     description = "Print verbose emulator initialization messages.",
-                    order = 8
+                    order = 9
             )
-            var verbose: Boolean = false
+            var verbose: Boolean = false,
+
+            @Parameter(
+                    names = arrayOf("--keep-output-on-exit"),
+                    required = false,
+                    description = "Keep output of emulator command on exit. False by default.",
+                    order = 10
+            )
+            var keepOutputOnExit: Boolean = false
 
     ) : Commands()
 
