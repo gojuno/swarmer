@@ -113,7 +113,15 @@ sealed class Commands {
                     description = "Keep output of emulator command on exit. False by default.",
                     order = 10
             )
-            var keepOutputOnExit: Boolean = false
+            var keepOutputOnExit: Boolean = false,
+
+            @Parameter(
+                    names = arrayOf("--use-compat-emulator"),
+                    required = false,
+                    description = "Use old compat emulator tool. Look https://issuetracker.google.com/issues/66886035 for details. False by default.",
+                    order = 10
+            )
+            var useCompatEmulator: Boolean = false
 
     ) : Commands()
 

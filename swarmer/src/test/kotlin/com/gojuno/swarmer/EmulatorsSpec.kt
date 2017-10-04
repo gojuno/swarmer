@@ -117,7 +117,7 @@ class EmulatorsSpec : Spek({
         }
 
         val emulator by memoized {
-            mock<() -> String>().apply { whenever(invoke()).thenReturn("/path/to/emulator/binary") }
+            mock<(Commands.Start) -> String>().apply { whenever(invoke(any())).thenReturn("/path/to/emulator/binary") }
         }
 
         val startEmulatorsProcess by memoized {
@@ -176,7 +176,7 @@ class EmulatorsSpec : Spek({
                 verify(startEmulatorsProcess).invoke(
                         listOf(
                                 "/bin/sh", "-c",
-                                "${emulator()} ${if (command.verbose) "-verbose" else ""} -avd ${command.emulatorName} -ports ${EMULATOR_PORTS.first},${EMULATOR_PORTS.second} ${command.emulatorStartOptions.joinToString(" ")} &"
+                                "${emulator(command)} ${if (command.verbose) "-verbose" else ""} -avd ${command.emulatorName} -ports ${EMULATOR_PORTS.first},${EMULATOR_PORTS.second} ${command.emulatorStartOptions.joinToString(" ")} &"
                         ),
                         File(command.redirectOutputTo ?: "", "${command.emulatorName}.output")
                 )
