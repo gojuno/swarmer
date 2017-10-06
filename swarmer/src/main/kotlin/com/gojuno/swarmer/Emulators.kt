@@ -35,9 +35,9 @@ fun startEmulators(
         applyConfig: (args: Commands.Start) -> Observable<Unit> = ::applyConfig,
         emulator: (args: Commands.Start) -> String = ::emulatorBinary,
         findAvailablePortsForNewEmulator: () -> Observable<Pair<Int, Int>> = ::findAvailablePortsForNewEmulator,
-        startEmulatorProcess: (List<String>, File?) -> Observable<Notification> = ::startEmulatorProcess,
+        startEmulatorProcess: (List<String>, Commands.Start) -> Observable<Notification> = ::startEmulatorProcess,
         waitForEmulatorToStart: (Commands.Start, () -> Observable<Set<AdbDevice>>, Observable<Notification>, Pair<Int, Int>) -> Observable<Emulator> = ::waitForEmulatorToStart,
-        waitForEmulatorToFinishBoot: (Emulator) -> Observable<Emulator> = ::waitForEmulatorToFinishBoot
+        waitForEmulatorToFinishBoot: (Emulator, Commands.Start) -> Observable<Emulator> = ::waitForEmulatorToFinishBoot
 ) {
     val startTime = System.nanoTime()
 
@@ -75,8 +75,13 @@ fun startEmulators(
     log("Swarmer: - \"My job is done here, took ${(System.nanoTime() - startTime).nanosAsSeconds()} seconds, startedEmulators: $startedEmulators, bye bye.\"")
 }
 
-private fun startEmulatorProcess(args: List<String>, redirectOutputTo: File?) =
-        process(args, null, redirectOutputTo)
+private fun startEmulatorProcess(args: List<String>, command: Commands.Start) =
+        process(
+                commandAndArgs = args,
+                timeout = null,
+                redirectOutputTo = outputFileForEmulator(command),
+                keepOutputOnExit = command.keepOutputOnExit
+        )
 
 private fun startEmulator(
         args: Commands.Start,
@@ -84,11 +89,11 @@ private fun startEmulator(
         applyConfig: (args: Commands.Start) -> Observable<Unit>,
         availablePortsSemaphore: Semaphore,
         findAvailablePortsForNewEmulator: () -> Observable<Pair<Int, Int>>,
-        startEmulatorProcess: (List<String>, File?) -> Observable<Notification>,
+        startEmulatorProcess: (List<String>, Commands.Start) -> Observable<Notification>,
         waitForEmulatorToStart: (Commands.Start, () -> Observable<Set<AdbDevice>>, Observable<Notification>, Pair<Int, Int>) -> Observable<Emulator>,
         connectedAdbDevices: () -> Observable<Set<AdbDevice>> = ::connectedAdbDevices,
         emulator: (Commands.Start) -> String,
-        waitForEmulatorToFinishBoot: (Emulator) -> Observable<Emulator>
+        waitForEmulatorToFinishBoot: (Emulator, Commands.Start) -> Observable<Emulator>
 ): Observable<Emulator> =
         createAvd(args)
                 .flatMap { applyConfig(args) }
@@ -99,7 +104,7 @@ private fun startEmulator(
                     startEmulatorProcess(
                             // Unix only, PR welcome.
                             listOf(sh, "-c", "${emulator(args)} ${if (args.verbose) "-verbose" else ""} -avd ${args.emulatorName} -ports ${ports.first},${ports.second} ${args.emulatorStartOptions.joinToString(" ")} &"),
-                            outputFileForEmulator(args)
+                            args
                     ).let { process ->
                         waitForEmulatorToStart(args, connectedAdbDevices, process, ports)
                     }
@@ -121,7 +126,9 @@ private fun startEmulator(
                         }
                     }
                 }
-                .flatMap(waitForEmulatorToFinishBoot)
+                .flatMap { emulator ->
+                    waitForEmulatorToFinishBoot(emulator, args)
+                }
                 .timeout(args.emulatorStartTimeoutSeconds, SECONDS)
                 .doOnError {
                     when (it) {
@@ -170,7 +177,9 @@ private fun createAvd(args: Commands.Start): Observable<Unit> {
                     "--package", args.pakage,
                     "--abi", args.androidAbi
             ),
-            timeout = 60 to SECONDS
+            timeout = 60 to SECONDS,
+            redirectOutputTo = outputDirectory(args),
+            keepOutputOnExit = args.keepOutputOnExit
     ).share()
 
     val iDontWishToCreateCustomHardwareProfile = Observable
@@ -267,7 +276,10 @@ private fun waitForEmulatorToStart(
             .doOnError { log("Error during start of the emulator ${args.emulatorName}, error = $it") }
 }
 
-private fun waitForEmulatorToFinishBoot(targetEmulator: Emulator): Observable<Emulator> {
+private fun waitForEmulatorToFinishBoot(
+        targetEmulator: Emulator,
+        args: Commands.Start
+): Observable<Emulator> {
     val startTime = AtomicLong()
 
     return Observable
@@ -286,7 +298,9 @@ private fun waitForEmulatorToFinishBoot(targetEmulator: Emulator): Observable<Em
                                     "shell",
                                     "getprop", "init.svc.bootanim"
                             ),
-                            timeout = 10 to SECONDS
+                            timeout = 10 to SECONDS,
+                            redirectOutputTo = outputDirectory(args),
+                            keepOutputOnExit = args.keepOutputOnExit
                     )
                             .filter { it is Notification.Exit }
                             .cast(Notification.Exit::class.java)
@@ -309,8 +323,13 @@ private fun waitForEmulatorToFinishBoot(targetEmulator: Emulator): Observable<Em
 private fun Long.nanosAsSeconds(): Float = NANOSECONDS.toMillis(this) / 1000f
 
 private fun outputFileForEmulator(args: Commands.Start) =
-        File(args.redirectOutputTo ?: "", "${args.emulatorName}.output").apply {
+        File(outputDirectory(args), "${args.emulatorName}.output").apply {
             if (!args.keepOutputOnExit) deleteOnExit()
+        }
+
+private fun outputDirectory(args: Commands.Start) =
+        args.redirectOutputTo?.run {
+            File(this).apply { mkdirs() }
         }
 
 private fun connectedEmulators(): Single<Set<AdbDevice>> =

@@ -121,7 +121,7 @@ class EmulatorsSpec : Spek({
         }
 
         val startEmulatorsProcess by memoized {
-            mock<(List<String>, File?) -> Observable<Notification>>().apply {
+            mock<(List<String>, Commands.Start) -> Observable<Notification>>().apply {
                 whenever(invoke(any(), any())).thenReturn(Observable.just(
                         Notification.Start(process, outputFile),
                         Notification.Exit(outputFile)
@@ -144,8 +144,8 @@ class EmulatorsSpec : Spek({
         val waitForEmulatorToFinishBoot by memoized {
             val emulatorCaptor = argumentCaptor<Emulator>()
 
-            mock<(Emulator) -> Observable<Emulator>>().apply {
-                whenever(invoke(emulatorCaptor.capture())).thenAnswer {
+            mock<(Emulator, Commands.Start) -> Observable<Emulator>>().apply {
+                whenever(invoke(emulatorCaptor.capture(), any())).thenAnswer {
                     Observable.just(emulatorCaptor.firstValue)
                 }
             }
@@ -178,7 +178,7 @@ class EmulatorsSpec : Spek({
                                 "/bin/sh", "-c",
                                 "${emulator(command)} ${if (command.verbose) "-verbose" else ""} -avd ${command.emulatorName} -ports ${EMULATOR_PORTS.first},${EMULATOR_PORTS.second} ${command.emulatorStartOptions.joinToString(" ")} &"
                         ),
-                        File(command.redirectOutputTo ?: "", "${command.emulatorName}.output")
+                        command
                 )
             }
         }
