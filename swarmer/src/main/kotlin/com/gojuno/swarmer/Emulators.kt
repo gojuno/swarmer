@@ -20,6 +20,8 @@ import java.util.concurrent.atomic.AtomicLong
 
 val sh: String = "/bin/sh"
 val avdManager: String = "$androidHome/tools/bin/avdmanager"
+val emulator = "$androidHome/emulator/emulator"
+val emulatorCompat = "$androidHome/tools/emulator"
 
 data class Emulator(
         val id: String,
@@ -31,7 +33,7 @@ fun startEmulators(
         connectedAdbDevices: () -> Observable<Set<AdbDevice>> = ::connectedAdbDevices,
         createAvd: (args: Commands.Start) -> Observable<Unit> = ::createAvd,
         applyConfig: (args: Commands.Start) -> Observable<Unit> = ::applyConfig,
-        emulator: () -> String = { "$androidHome/tools/emulator" },
+        emulator: (args: Commands.Start) -> String = ::emulatorBinary,
         findAvailablePortsForNewEmulator: () -> Observable<Pair<Int, Int>> = ::findAvailablePortsForNewEmulator,
         startEmulatorProcess: (List<String>, File?) -> Observable<Notification> = ::startEmulatorProcess,
         waitForEmulatorToStart: (Commands.Start, () -> Observable<Set<AdbDevice>>, Observable<Notification>, Pair<Int, Int>) -> Observable<Emulator> = ::waitForEmulatorToStart,
@@ -85,7 +87,7 @@ private fun startEmulator(
         startEmulatorProcess: (List<String>, File?) -> Observable<Notification>,
         waitForEmulatorToStart: (Commands.Start, () -> Observable<Set<AdbDevice>>, Observable<Notification>, Pair<Int, Int>) -> Observable<Emulator>,
         connectedAdbDevices: () -> Observable<Set<AdbDevice>> = ::connectedAdbDevices,
-        emulator: () -> String,
+        emulator: (Commands.Start) -> String,
         waitForEmulatorToFinishBoot: (Emulator) -> Observable<Emulator>
 ): Observable<Emulator> =
         createAvd(args)
@@ -96,7 +98,7 @@ private fun startEmulator(
                 .flatMap { ports ->
                     startEmulatorProcess(
                             // Unix only, PR welcome.
-                            listOf(sh, "-c", "${emulator()} ${if (args.verbose) "-verbose" else ""} -avd ${args.emulatorName} -ports ${ports.first},${ports.second} ${args.emulatorStartOptions.joinToString(" ")} &"),
+                            listOf(sh, "-c", "${emulator(args)} ${if (args.verbose) "-verbose" else ""} -avd ${args.emulatorName} -ports ${ports.first},${ports.second} ${args.emulatorStartOptions.joinToString(" ")} &"),
                             outputFileForEmulator(args)
                     ).let { process ->
                         waitForEmulatorToStart(args, connectedAdbDevices, process, ports)
@@ -200,6 +202,13 @@ private fun applyConfig(args: Commands.Start): Observable<Unit> = Observable
                     .copyTo(File("$home/.android/avd/${args.emulatorName}.avd/config.ini"), overwrite = true)
         }
         .map { Unit }
+
+private fun emulatorBinary(args: Commands.Start): String =
+        if (args.useCompatEmulator) {
+            emulatorCompat
+        } else {
+            emulator
+        }
 
 private fun findAvailablePortsForNewEmulator(): Observable<Pair<Int, Int>> = connectedAdbDevices()
         .map { it.filter { it.isEmulator } }
