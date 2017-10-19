@@ -3,7 +3,7 @@ ext.versions = [
 
         rxJava       : '1.2.9',
         jCommander   : '1.71',
-        commander    : '0.1.1',
+        commander    : '0.1.2',
 
         junit        : '4.12',
         junitPlatform: '1.0.0-M4',
