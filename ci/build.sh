@@ -36,9 +36,10 @@ docker run \
 --env BINTRAY_USER="$BINTRAY_USER" \
 --env BINTRAY_API_KEY="$BINTRAY_API_KEY" \
 --env BINTRAY_GPG_PASSPHRASE="$BINTRAY_GPG_PASSPHRASE" \
+--env ANDROID_HOME="" \
 --volume `"pwd"`:/opt/project \
 --rm \
-openjdk:8u121-jdk \
+openjdk:8u171-jdk \
 bash -c "$BUILD_COMMAND"
 
 popd
