@@ -25,17 +25,17 @@ sealed class Commands {
 
     @Parameters(
             commandDescription = "Print help and exit.",
-            commandNames = arrayOf("--help", "-help", "help", "-h")
+            commandNames = ["--help", "-help", "help", "-h"]
     )
     object Help : Commands()
 
     @Parameters(
             commandDescription = "Start emulators listed",
-            commandNames = arrayOf("start")
+            commandNames = ["start"]
     )
     data class Start(
             @Parameter(
-                    names = arrayOf(PARAMETER_EMULATOR_NAME),
+                    names = [PARAMETER_EMULATOR_NAME],
                     required = true,
                     description = "Name for the emulator, i.e. `test_emulator_1` to pass to `avdmanager create avd --name`.",
                     order = 1
@@ -43,7 +43,7 @@ sealed class Commands {
             var emulatorName: String = "",
 
             @Parameter(
-                    names = arrayOf("--package"),
+                    names = ["--package"],
                     required = true,
                     description = "Package of the system image for this AVD (e.g.'system-images;android-25;google_apis;x86') to pass to `avdmanager create avd --package`.",
                     order = 2
@@ -51,7 +51,7 @@ sealed class Commands {
             var pakage: String = "",
 
             @Parameter(
-                    names = arrayOf("--android-abi"),
+                    names = ["--android-abi"],
                     required = true,
                     description = "Android system image abi, i.e. `google_apis/x86_64` to pass to `avdmanager create avd --abi`.",
                     order = 3
@@ -59,7 +59,7 @@ sealed class Commands {
             var androidAbi: String = "",
 
             @Parameter(
-                    names = arrayOf("--path-to-config-ini"),
+                    names = ["--path-to-config-ini"],
                     required = true,
                     description = "Path either relative or absolute to the file that will be used as `config.ini` for created emulator.",
                     order = 4
@@ -67,7 +67,7 @@ sealed class Commands {
             var pathToConfigIni: String = "",
 
             @Parameter(
-                    names = arrayOf("--emulator-start-options"),
+                    names = ["--emulator-start-options"],
                     required = false,
                     variableArity = true,
                     description = "Options to pass to `emulator -avd \$emulatorName` command, i.e. `--no-window -prop persist.sys.language=en -prop persist.sys.country=US`.",
@@ -76,7 +76,7 @@ sealed class Commands {
             var emulatorStartOptions: List<String> = emptyList(),
 
             @Parameter(
-                    names = arrayOf("--emulator-start-timeout-seconds"),
+                    names = ["--emulator-start-timeout-seconds"],
                     required = false,
                     description = "Timeout to wait for emulator to finish boot. Default value is 180 seconds.",
                     order = 6
@@ -84,7 +84,7 @@ sealed class Commands {
             var emulatorStartTimeoutSeconds: Long = 180,
 
             @Parameter(
-                    names = arrayOf("--redirect-logcat-to"),
+                    names = ["--redirect-logcat-to"],
                     required = false,
                     description = "Path either relative or absolute to the file that will be used to redirect logcat of started emulator to. No redirection will happen if parameter is not presented.",
                     order = 7
@@ -92,7 +92,7 @@ sealed class Commands {
             var redirectLogcatTo: String? = null,
 
             @Parameter(
-                    names = arrayOf("--redirect-output-to"),
+                    names = ["--redirect-output-to"],
                     required = false,
                     description = "Path either relative or absolute to the directory that will be used to redirect emulator command output. No redirection will happen if parameter is not presented.",
                     order = 8
@@ -100,7 +100,7 @@ sealed class Commands {
             var redirectOutputTo: String? = null,
 
             @Parameter(
-                    names = arrayOf("--verbose-emulator"),
+                    names = ["--verbose-emulator"],
                     required = false,
                     description = "Print verbose emulator initialization messages.",
                     order = 9
@@ -108,7 +108,7 @@ sealed class Commands {
             var verbose: Boolean = false,
 
             @Parameter(
-                    names = arrayOf("--keep-output-on-exit"),
+                    names = ["--keep-output-on-exit"],
                     required = false,
                     description = "Keep output of emulator command on exit. False by default.",
                     order = 10
@@ -116,7 +116,7 @@ sealed class Commands {
             var keepOutputOnExit: Boolean = false,
 
             @Parameter(
-                    names = arrayOf("--use-compat-emulator"),
+                    names = ["--use-compat-emulator"],
                     required = false,
                     description = "Use old compat emulator tool. Look https://issuetracker.google.com/issues/66886035 for details. False by default.",
                     order = 10
@@ -127,11 +127,11 @@ sealed class Commands {
 
     @Parameters(
             commandDescription = "Stop all emulators",
-            commandNames = arrayOf("stop")
+            commandNames = ["stop"]
     )
     data class Stop(
             @Parameter(
-                    names = arrayOf("--timeout"),
+                    names = ["--timeout"],
                     required = false,
                     description = "Timeout for emulators to stop in seconds, default is 15 seconds.",
                     order = 1

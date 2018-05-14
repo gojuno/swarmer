@@ -17,7 +17,6 @@ dependencies {
 
 dependencies {
     testCompile libraries.spek
-    testCompile libraries.spekSubjectExtension
     testRuntime libraries.spekJunitPlatformEngine
     testCompile libraries.assertJ
     testCompile libraries.mockito

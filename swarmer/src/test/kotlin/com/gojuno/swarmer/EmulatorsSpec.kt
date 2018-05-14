@@ -3,7 +3,11 @@ package com.gojuno.swarmer
 import com.gojuno.commander.android.AdbDevice
 import com.gojuno.commander.android.adb
 import com.gojuno.commander.os.Notification
-import com.nhaarman.mockito_kotlin.*
+import com.nhaarman.mockito_kotlin.any
+import com.nhaarman.mockito_kotlin.argumentCaptor
+import com.nhaarman.mockito_kotlin.mock
+import com.nhaarman.mockito_kotlin.verify
+import com.nhaarman.mockito_kotlin.whenever
 import org.jetbrains.spek.api.Spek
 import org.jetbrains.spek.api.dsl.describe
 import org.jetbrains.spek.api.dsl.it
@@ -16,9 +20,9 @@ import java.util.concurrent.TimeUnit
 class EmulatorsSpec : Spek({
 
     val ADB_DEVICES = setOf(
-            AdbDevice("id1", true),
-            AdbDevice("id2", true),
-            AdbDevice("id3", true)
+            AdbDevice("id1", online = true),
+            AdbDevice("id2", online = true),
+            AdbDevice("id3", online = true)
     )
 
     arrayOf(
