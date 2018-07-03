@@ -194,15 +194,21 @@ private fun createAvd(args: Commands.Start): Observable<Unit> {
 
     val startTime = AtomicLong()
 
-    return Observable
-            .merge(iDontWishToCreateCustomHardwareProfile, createAvdProcess)
-            .first { it is Notification.Exit }
-            .doOnError { log("Error during creation of avd ${args.emulatorName}, error = $it") }
-            .retry(3) // https://code.google.com/p/android/issues/detail?id=262719
-            .map { Unit }
-            .doOnSubscribe { log("Creating avd ${args.emulatorName}."); startTime.set(nanoTime()) }
-            .doOnNext { log("Avd ${args.emulatorName} created in ${(nanoTime() - startTime.get()).nanosAsSeconds()} seconds.") }
-            .doOnError { log("Could not create avd ${args.emulatorName}, error = $it") }
+    return if (args.keepExistingAvds && File("$home/.android/avd/${args.emulatorName}.avd").exists()) {
+        Observable
+                .just(Unit)
+                .doOnSubscribe { log("Avd ${args.emulatorName} already exists, will not be overridden.") }
+    } else {
+        Observable
+                .merge(iDontWishToCreateCustomHardwareProfile, createAvdProcess)
+                .first { it is Notification.Exit }
+                .doOnError { log("Error during creation of avd ${args.emulatorName}, error = $it") }
+                .retry(3) // https://code.google.com/p/android/issues/detail?id=262719
+                .map { Unit }
+                .doOnSubscribe { log("Creating avd ${args.emulatorName}."); startTime.set(nanoTime()) }
+                .doOnNext { log("Avd ${args.emulatorName} created in ${(nanoTime() - startTime.get()).nanosAsSeconds()} seconds.") }
+                .doOnError { log("Could not create avd ${args.emulatorName}, error = $it") }
+    }
 }
 
 private fun applyConfig(args: Commands.Start): Observable<Unit> = Observable

@@ -18,7 +18,8 @@ class ArgsSpec : Spek({
             "--emulator-start-options", "-prop option=value",
             "--emulator-start-timeout-seconds", "180",
             "--redirect-logcat-to", "logcat.txt",
-            "--verbose-emulator", "--keep-output-on-exit"
+            "--verbose-emulator", "--keep-output-on-exit",
+            "--keep-existing-avds"
     )
 
     on("parse args with only required fields") {
@@ -53,7 +54,8 @@ class ArgsSpec : Spek({
                     emulatorStartTimeoutSeconds = 180L,
                     redirectLogcatTo = "logcat.txt",
                     verbose = true,
-                    keepOutputOnExit = true
+                    keepOutputOnExit = true,
+                    keepExistingAvds = true
             )))
         }
     }
