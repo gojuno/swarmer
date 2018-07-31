@@ -20,6 +20,10 @@ val sh: List<String> = when (os()) {
     Os.Linux, Os.Mac -> listOf("/bin/sh", "-c")
     Os.Windows -> listOf("cmd", "/C")
 }
+val runInBackground: String = when (os()) {
+    Os.Linux, Os.Mac -> "&"
+    Os.Windows -> ""
+}
 val avdManager: String = when (os()) {
     Os.Linux, Os.Mac -> "$androidHome/tools/bin/avdmanager"
     Os.Windows -> "$androidHome/tools/bin/avdmanager.bat"
@@ -112,18 +116,7 @@ private fun startEmulator(
                 .doOnNext { log("Ports for emulator ${args.emulatorName}: ${it.first}, ${it.second}.") }
                 .flatMap { ports ->
                     startEmulatorProcess(
-                            sh
-                                    +
-                                    listOf(emulator(args))
-                                    + mutableListOf<String>().apply {
-                                if (args.verbose) add("-verbose")
-                                add("-avd"); add(args.emulatorName)
-                                add("-ports"); add("${ports.first},${ports.second}")
-                                addAll(args.emulatorStartOptions)
-                            }
-
-
-                            ,
+                            sh + "${emulator(args)} ${if (args.verbose) "-verbose " else ""}-avd ${args.emulatorName} -ports ${ports.first},${ports.second} ${args.emulatorStartOptions.joinToString(" ")} $runInBackground".trim(),
                             args
                     ).let { process ->
                         waitForEmulatorToStart(args, connectedAdbDevices, process, ports)
