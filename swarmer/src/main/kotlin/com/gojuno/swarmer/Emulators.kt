@@ -1,10 +1,7 @@
 package com.gojuno.swarmer
 
 import com.gojuno.commander.android.*
-import com.gojuno.commander.os.Notification
-import com.gojuno.commander.os.home
-import com.gojuno.commander.os.log
-import com.gojuno.commander.os.process
+import com.gojuno.commander.os.*
 import rx.Completable
 import rx.Observable
 import rx.Single
@@ -12,16 +9,29 @@ import rx.schedulers.Schedulers
 import rx.schedulers.Schedulers.io
 import java.io.File
 import java.lang.System.nanoTime
+import java.util.*
 import java.util.concurrent.Semaphore
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.TimeUnit.*
 import java.util.concurrent.TimeoutException
 import java.util.concurrent.atomic.AtomicLong
 
-val sh: String = "/bin/sh"
-val avdManager: String = "$androidHome/tools/bin/avdmanager"
-val emulator = "$androidHome/emulator/emulator"
-val emulatorCompat = "$androidHome/tools/emulator"
+val sh: List<String> = when (os()) {
+    Os.Linux, Os.Mac -> listOf("/bin/sh", "-c")
+    Os.Windows -> listOf("cmd", "/C")
+}
+val avdManager: String = when (os()) {
+    Os.Linux, Os.Mac -> "$androidHome/tools/bin/avdmanager"
+    Os.Windows -> "$androidHome/tools/bin/avdmanager.bat"
+}
+val emulator = when (os()) {
+    Os.Linux, Os.Mac -> "$androidHome/emulator/emulator"
+    Os.Windows -> "$androidHome/emulator/emulator.exe"
+}
+val emulatorCompat = when (os()) {
+    Os.Linux, Os.Mac -> "$androidHome/tools/emulator"
+    Os.Windows -> "$androidHome/tools/emulator.exe"
+}
 
 data class Emulator(
         val id: String,
@@ -102,8 +112,18 @@ private fun startEmulator(
                 .doOnNext { log("Ports for emulator ${args.emulatorName}: ${it.first}, ${it.second}.") }
                 .flatMap { ports ->
                     startEmulatorProcess(
-                            // Unix only, PR welcome.
-                            listOf(sh, "-c", "${emulator(args)} ${if (args.verbose) "-verbose" else ""} -avd ${args.emulatorName} -ports ${ports.first},${ports.second} ${args.emulatorStartOptions.joinToString(" ")} &"),
+                            sh
+                                    +
+                                    listOf(emulator(args))
+                                    + mutableListOf<String>().apply {
+                                if (args.verbose) add("-verbose")
+                                add("-avd"); add(args.emulatorName)
+                                add("-ports"); add("${ports.first},${ports.second}")
+                                addAll(args.emulatorStartOptions)
+                            }
+
+
+                            ,
                             args
                     ).let { process ->
                         waitForEmulatorToStart(args, connectedAdbDevices, process, ports)
@@ -194,7 +214,7 @@ private fun createAvd(args: Commands.Start): Observable<Unit> {
 
     val startTime = AtomicLong()
 
-    val createAvd = Observable
+    return Observable
             .merge(iDontWishToCreateCustomHardwareProfile, createAvdProcess)
             .first { it is Notification.Exit }
             .doOnError { log("Error during creation of avd ${args.emulatorName}, error = $it") }
@@ -203,21 +223,6 @@ private fun createAvd(args: Commands.Start): Observable<Unit> {
             .doOnSubscribe { log("Creating avd ${args.emulatorName}."); startTime.set(nanoTime()) }
             .doOnNext { log("Avd ${args.emulatorName} created in ${(nanoTime() - startTime.get()).nanosAsSeconds()} seconds.") }
             .doOnError { log("Could not create avd ${args.emulatorName}, error = $it") }
-
-    return if (args.keepExistingAvds) {
-        createdEmulators(args).flatMapObservable {
-            if (it.contains(args.emulatorName)) {
-                Observable
-                        .just(Unit)
-                        .doOnSubscribe { log("Avd ${args.emulatorName} already exists, will not be overridden.") }
-            } else {
-                createAvd
-            }
-        }
-
-    } else {
-        createAvd
-    }
 }
 
 private fun applyConfig(args: Commands.Start): Observable<Unit> = Observable
@@ -350,16 +355,16 @@ private fun outputDirectory(args: Commands.Start) =
 private fun connectedEmulators(): Single<Set<AdbDevice>> =
         connectedAdbDevices().take(1).toSingle().map { it.filter { it.isEmulator }.toSet() }
 
-private fun createdEmulators(args: Commands.Start, timeout: Pair<Int, TimeUnit> = 60 to SECONDS): Single<Set<String>> =
-        process(
-                commandAndArgs = listOf(emulatorBinary(args), "-list-avds"),
-                timeout = timeout,
-                unbufferedOutput = true
-        ).ofType(Notification.Exit::class.java)
-                .toSingle()
-                .map {
-                    it.output.readText()
-                            .split(System.lineSeparator())
-                            .filter { !it.isBlank() }
-                            .toSet()
-                }
+private fun os(): Os {
+    val os = System.getProperty("os.name", "unknown").toLowerCase(Locale.ENGLISH)
+
+    return if (os.contains("mac") || os.contains("darwin")) {
+        Os.Mac
+    } else if (os.contains("linux")) {
+        Os.Linux
+    } else if (os.contains("windows")) {
+        Os.Windows
+    } else {
+        throw IllegalStateException("Unsupported os $os, only ${Os.values()} are supported.")
+    }
+}
