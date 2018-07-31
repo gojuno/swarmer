@@ -194,20 +194,29 @@ private fun createAvd(args: Commands.Start): Observable<Unit> {
 
     val startTime = AtomicLong()
 
-    return if (args.keepExistingAvds && File("$home/.android/avd/${args.emulatorName}.avd").exists()) {
-        Observable
-                .just(Unit)
-                .doOnSubscribe { log("Avd ${args.emulatorName} already exists, will not be overridden.") }
+    val createAvd = Observable
+            .merge(iDontWishToCreateCustomHardwareProfile, createAvdProcess)
+            .first { it is Notification.Exit }
+            .doOnError { log("Error during creation of avd ${args.emulatorName}, error = $it") }
+            .retry(3) // https://code.google.com/p/android/issues/detail?id=262719
+            .map { Unit }
+            .doOnSubscribe { log("Creating avd ${args.emulatorName}."); startTime.set(nanoTime()) }
+            .doOnNext { log("Avd ${args.emulatorName} created in ${(nanoTime() - startTime.get()).nanosAsSeconds()} seconds.") }
+            .doOnError { log("Could not create avd ${args.emulatorName}, error = $it") }
+
+    return if (args.keepExistingAvds) {
+        createdEmulators(args).flatMapObservable {
+            if (it.contains(args.emulatorName)) {
+                Observable
+                        .just(Unit)
+                        .doOnSubscribe { log("Avd ${args.emulatorName} already exists, will not be overridden.") }
+            } else {
+                createAvd
+            }
+        }
+
     } else {
-        Observable
-                .merge(iDontWishToCreateCustomHardwareProfile, createAvdProcess)
-                .first { it is Notification.Exit }
-                .doOnError { log("Error during creation of avd ${args.emulatorName}, error = $it") }
-                .retry(3) // https://code.google.com/p/android/issues/detail?id=262719
-                .map { Unit }
-                .doOnSubscribe { log("Creating avd ${args.emulatorName}."); startTime.set(nanoTime()) }
-                .doOnNext { log("Avd ${args.emulatorName} created in ${(nanoTime() - startTime.get()).nanosAsSeconds()} seconds.") }
-                .doOnError { log("Could not create avd ${args.emulatorName}, error = $it") }
+        createAvd
     }
 }
 
@@ -340,3 +349,17 @@ private fun outputDirectory(args: Commands.Start) =
 
 private fun connectedEmulators(): Single<Set<AdbDevice>> =
         connectedAdbDevices().take(1).toSingle().map { it.filter { it.isEmulator }.toSet() }
+
+private fun createdEmulators(args: Commands.Start, timeout: Pair<Int, TimeUnit> = 60 to SECONDS): Single<Set<String>> =
+        process(
+                commandAndArgs = listOf(emulatorBinary(args), "-list-avds"),
+                timeout = timeout,
+                unbufferedOutput = true
+        ).ofType(Notification.Exit::class.java)
+                .toSingle()
+                .map {
+                    it.output.readText()
+                            .split(System.lineSeparator())
+                            .filter { !it.isBlank() }
+                            .toSet()
+                }
