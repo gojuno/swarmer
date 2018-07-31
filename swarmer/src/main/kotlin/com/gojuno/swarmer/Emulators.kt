@@ -214,7 +214,6 @@ private fun createAvd(args: Commands.Start): Observable<Unit> {
                 createAvd
             }
         }
-
     } else {
         createAvd
     }
@@ -361,5 +360,6 @@ private fun createdEmulators(args: Commands.Start, timeout: Pair<Int, TimeUnit> 
                     it.output.readText()
                             .split(System.lineSeparator())
                             .filter { !it.isBlank() }
+                            .map { it.trim() }
                             .toSet()
                 }
