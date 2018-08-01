@@ -33,17 +33,13 @@ fun startEmulators(
         connectedAdbDevices: () -> Observable<Set<AdbDevice>> = ::connectedAdbDevices,
         createAvd: (args: Commands.Start) -> Observable<Unit> = ::createAvd,
         applyConfig: (args: Commands.Start) -> Observable<Unit> = ::applyConfig,
-        emulator: (args: Commands.Start) -> String = ::emulatorBinary,
+        emulatorCmd: (args: Commands.Start) -> String = ::emulatorBinary,
         findAvailablePortsForNewEmulator: () -> Observable<Pair<Int, Int>> = ::findAvailablePortsForNewEmulator,
         startEmulatorProcess: (List<String>, Commands.Start) -> Observable<Notification> = ::startEmulatorProcess,
         waitForEmulatorToStart: (Commands.Start, () -> Observable<Set<AdbDevice>>, Observable<Notification>, Pair<Int, Int>) -> Observable<Emulator> = ::waitForEmulatorToStart,
         waitForEmulatorToFinishBoot: (Emulator, Commands.Start) -> Observable<Emulator> = ::waitForEmulatorToFinishBoot
 ) {
     val startTime = System.nanoTime()
-
-    // Sometimes on Linux "emulator -verbose -avd" does not print serial id of started emulator,
-    // so by allocating ports manually we know which serial id emulator will have.
-    val availablePortsSemaphore = Semaphore(1)
 
     val startedEmulators = connectedAdbDevices()
             .doOnNext { log("Already running emulators: $it") }
@@ -54,12 +50,11 @@ fun startEmulators(
                                     args = command,
                                     createAvd = createAvd,
                                     applyConfig = applyConfig,
-                                    availablePortsSemaphore = availablePortsSemaphore,
                                     findAvailablePortsForNewEmulator = findAvailablePortsForNewEmulator,
                                     startEmulatorProcess = startEmulatorProcess,
                                     waitForEmulatorToStart = waitForEmulatorToStart,
                                     connectedAdbDevices = connectedAdbDevices,
-                                    emulator = emulator,
+                                    emulatorCmd = emulatorCmd,
                                     waitForEmulatorToFinishBoot = waitForEmulatorToFinishBoot
                             )
                         }
@@ -87,29 +82,26 @@ private fun startEmulator(
         args: Commands.Start,
         createAvd: (args: Commands.Start) -> Observable<Unit>,
         applyConfig: (args: Commands.Start) -> Observable<Unit>,
-        availablePortsSemaphore: Semaphore,
         findAvailablePortsForNewEmulator: () -> Observable<Pair<Int, Int>>,
         startEmulatorProcess: (List<String>, Commands.Start) -> Observable<Notification>,
         waitForEmulatorToStart: (Commands.Start, () -> Observable<Set<AdbDevice>>, Observable<Notification>, Pair<Int, Int>) -> Observable<Emulator>,
         connectedAdbDevices: () -> Observable<Set<AdbDevice>> = ::connectedAdbDevices,
-        emulator: (Commands.Start) -> String,
+        emulatorCmd: (Commands.Start) -> String,
         waitForEmulatorToFinishBoot: (Emulator, Commands.Start) -> Observable<Emulator>
 ): Observable<Emulator> =
         createAvd(args)
                 .flatMap { applyConfig(args) }
-                .map { availablePortsSemaphore.acquire() }
                 .flatMap { findAvailablePortsForNewEmulator() }
                 .doOnNext { log("Ports for emulator ${args.emulatorName}: ${it.first}, ${it.second}.") }
                 .flatMap { ports ->
                     startEmulatorProcess(
                             // Unix only, PR welcome.
-                            listOf(sh, "-c", "${emulator(args)} ${if (args.verbose) "-verbose" else ""} -avd ${args.emulatorName} -ports ${ports.first},${ports.second} ${args.emulatorStartOptions.joinToString(" ")} &"),
+                            listOf(sh, "-c", "${emulatorCmd(args)} ${if (args.verbose) "-verbose" else ""} -avd ${args.emulatorName} -ports ${ports.first},${ports.second} ${args.emulatorStartOptions.joinToString(" ")} &"),
                             args
                     ).let { process ->
                         waitForEmulatorToStart(args, connectedAdbDevices, process, ports)
                     }
                 }
-                .map { emulator -> availablePortsSemaphore.release().let { emulator } }
                 .flatMap { emulator ->
                     when (args.redirectLogcatTo) {
                         null -> Observable.just(emulator)
@@ -219,17 +211,22 @@ private fun emulatorBinary(args: Commands.Start): String =
             emulator
         }
 
+private val usedPorts: MutableList<Int> = mutableListOf()
+/**
+ * Sometimes on Linux "emulator -verbose -avd" does not print serial id of started emulator,
+ * so by allocating ports manually we know which serial id emulator will have.
+ */
 private fun findAvailablePortsForNewEmulator(): Observable<Pair<Int, Int>> = connectedAdbDevices()
         .map { it.filter { it.isEmulator } }
         .map {
-            if (it.isEmpty()) {
-                5554
-            } else {
+            synchronized(usedPorts) {
                 it
                         .map { it.id }
                         .map { it.substringAfter("emulator-") }
                         .map { it.toInt() }
-                        .max()!! + 2
+                        .let { it + usedPorts }
+                        .let { (it.max() ?: 5552) + 2 }
+                        .also { usedPorts.add(it) }
             }
         }
         .map { it to it + 1 }
