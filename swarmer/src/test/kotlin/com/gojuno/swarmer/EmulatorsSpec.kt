@@ -167,7 +167,7 @@ class EmulatorsSpec : Spek({
                     connectedAdbDevices = connectedAdbDevices,
                     createAvd = createAvd,
                     applyConfig = applyConfig,
-                    emulator = emulator,
+                    emulatorCmd = emulator,
                     startEmulatorProcess = startEmulatorsProcess,
                     waitForEmulatorToStart = waitForEmulatorToStart,
                     findAvailablePortsForNewEmulator = findAvailablePortsForNewEmulator,
