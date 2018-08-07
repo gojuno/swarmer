@@ -50,6 +50,8 @@ java -jar swarmer.jar start …
   * Timeout to wait for emulator to finish boot. Default value is 180 seconds.
 * `--redirect-logcat-to`
   * Path either relative or absolute to the file that will be used to redirect logcat of started emulator to. No redirection will happen if parameter is not presented.
+* `--keep-existing-avds`
+  * Avoid recreating avds and reuse existing ones whenever possible.
 
 ##### Examples
 
