@@ -178,9 +178,9 @@ class EmulatorsSpec : Spek({
         START_COMMANDS.forEach { command ->
             it("should start emulators") {
                 verify(startEmulatorsProcess).invoke(
+                        sh +
                         listOf(
-                                "/bin/sh", "-c",
-                                "${emulator(command)} ${if (command.verbose) "-verbose" else ""} -avd ${command.emulatorName} -ports ${EMULATOR_PORTS.first},${EMULATOR_PORTS.second} ${command.emulatorStartOptions.joinToString(" ")} &"
+                                "${emulator(command)} ${if (command.verbose) "-verbose" else ""} -avd ${command.emulatorName} -ports ${EMULATOR_PORTS.first},${EMULATOR_PORTS.second} ${command.emulatorStartOptions.joinToString(" ")} $runInBackground".trim()
                         ),
                         command
                 )

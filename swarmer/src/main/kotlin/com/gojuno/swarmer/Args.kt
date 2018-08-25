@@ -15,7 +15,7 @@ sealed class Commands {
         val ALIASES_START = listOf("start")
         val ALIASES_STOP = listOf("stop")
 
-        fun fromStringAlias(alias: String): Commands? = when {
+        fun fromStringAlias(alias: String?): Commands? = when {
             ALIASES_HELP.contains(alias) -> Help
             ALIASES_STOP.contains(alias) -> Stop()
             ALIASES_START.contains(alias) -> Start()
@@ -148,7 +148,7 @@ sealed class Commands {
     ) : Commands()
 }
 
-fun parseCommand(rawArgs: List<String>) = Commands.fromStringAlias(rawArgs[0])
+fun parseCommand(rawArgs: List<String>) = Commands.fromStringAlias(rawArgs.getOrNull(0))
 
 fun parseStartArguments(rawArgs: List<String>): List<Commands.Start> =
         rawArgs

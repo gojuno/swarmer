@@ -5,6 +5,8 @@ import com.gojuno.commander.os.Notification
 import com.gojuno.commander.os.home
 import com.gojuno.commander.os.log
 import com.gojuno.commander.os.process
+import com.gojuno.commander.os.os
+import com.gojuno.commander.os.Os
 import rx.Completable
 import rx.Observable
 import rx.Single
@@ -18,10 +20,26 @@ import java.util.concurrent.TimeUnit.*
 import java.util.concurrent.TimeoutException
 import java.util.concurrent.atomic.AtomicLong
 
-val sh: String = "/bin/sh"
-val avdManager: String = "$androidHome/tools/bin/avdmanager"
-val emulator = "$androidHome/emulator/emulator"
-val emulatorCompat = "$androidHome/tools/emulator"
+val sh: List<String> = when (os()) {
+    Os.Linux, Os.Mac -> listOf("/bin/sh", "-c")
+    Os.Windows -> listOf("cmd", "/C")
+}
+val runInBackground: String = when (os()) {
+    Os.Linux, Os.Mac -> "&"
+    Os.Windows -> ""
+}
+val avdManager: String = when (os()) {
+    Os.Linux, Os.Mac -> "$androidHome/tools/bin/avdmanager"
+    Os.Windows -> "$androidHome/tools/bin/avdmanager.bat"
+}
+val emulator = when (os()) {
+    Os.Linux, Os.Mac -> "$androidHome/emulator/emulator"
+    Os.Windows -> "$androidHome/emulator/emulator.exe"
+}
+val emulatorCompat = when (os()) {
+    Os.Linux, Os.Mac -> "$androidHome/tools/emulator"
+    Os.Windows -> "$androidHome/tools/emulator.exe"
+}
 
 data class Emulator(
         val id: String,
@@ -102,8 +120,7 @@ private fun startEmulator(
                 .doOnNext { log("Ports for emulator ${args.emulatorName}: ${it.first}, ${it.second}.") }
                 .flatMap { ports ->
                     startEmulatorProcess(
-                            // Unix only, PR welcome.
-                            listOf(sh, "-c", "${emulator(args)} ${if (args.verbose) "-verbose" else ""} -avd ${args.emulatorName} -ports ${ports.first},${ports.second} ${args.emulatorStartOptions.joinToString(" ")} &"),
+                            sh + "${emulator(args)} ${if (args.verbose) "-verbose " else ""}-avd ${args.emulatorName} -ports ${ports.first},${ports.second} ${args.emulatorStartOptions.joinToString(" ")} $runInBackground".trim(),
                             args
                     ).let { process ->
                         waitForEmulatorToStart(args, connectedAdbDevices, process, ports)
