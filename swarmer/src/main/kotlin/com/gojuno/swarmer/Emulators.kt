@@ -9,7 +9,6 @@ import rx.schedulers.Schedulers
 import rx.schedulers.Schedulers.io
 import java.io.File
 import java.lang.System.nanoTime
-import java.util.*
 import java.util.concurrent.Semaphore
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.TimeUnit.*
@@ -347,17 +346,3 @@ private fun outputDirectory(args: Commands.Start) =
 
 private fun connectedEmulators(): Single<Set<AdbDevice>> =
         connectedAdbDevices().take(1).toSingle().map { it.filter { it.isEmulator }.toSet() }
-
-private fun os(): Os {
-    val os = System.getProperty("os.name", "unknown").toLowerCase(Locale.ENGLISH)
-
-    return if (os.contains("mac") || os.contains("darwin")) {
-        Os.Mac
-    } else if (os.contains("linux")) {
-        Os.Linux
-    } else if (os.contains("windows")) {
-        Os.Windows
-    } else {
-        throw IllegalStateException("Unsupported os $os, only ${Os.values()} are supported.")
-    }
-}
