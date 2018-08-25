@@ -8,12 +8,14 @@ import com.nhaarman.mockito_kotlin.argumentCaptor
 import com.nhaarman.mockito_kotlin.mock
 import com.nhaarman.mockito_kotlin.verify
 import com.nhaarman.mockito_kotlin.whenever
+import org.assertj.core.api.Assertions.assertThat
 import org.jetbrains.spek.api.Spek
 import org.jetbrains.spek.api.dsl.describe
 import org.jetbrains.spek.api.dsl.it
 import rx.Completable
 import rx.Observable
 import rx.Single
+import rx.schedulers.Schedulers
 import java.io.File
 import java.util.concurrent.TimeUnit
 
@@ -93,9 +95,10 @@ class EmulatorsSpec : Spek({
             )
     )
 
-    val EMULATOR_PORTS = Pair(12, 34)
-
     describe("start emulators command called") {
+
+        val EMULATOR_PORTS = Pair(12, 34)
+
         val connectedAdbDevices by memoized {
             { Observable.just(emptySet<AdbDevice>()) }
         }
@@ -185,6 +188,27 @@ class EmulatorsSpec : Spek({
                         command
                 )
             }
+        }
+    }
+
+    describe("find available ports for new emulator") {
+
+        val connectedAdbDevices by memoized {
+            { Observable.just(emptySet<AdbDevice>()) }
+        }
+
+        it("does not return duplicated ports") {
+
+
+            val testSubscriber = Observable.from(1..100)
+                .flatMap {
+                    findAvailablePortsForNewEmulator(connectedAdbDevices)
+                        .subscribeOn(Schedulers.io())
+                }.test().awaitTerminalEvent()
+            val allocatedPorts = testSubscriber.onNextEvents
+
+            assertThat(allocatedPorts).doesNotHaveDuplicates()
+            println("Allocated ports: $allocatedPorts")
         }
     }
 })

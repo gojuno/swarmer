@@ -12,10 +12,10 @@ import rx.schedulers.Schedulers
 import rx.schedulers.Schedulers.io
 import java.io.File
 import java.lang.System.nanoTime
-import java.util.concurrent.Semaphore
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.TimeUnit.*
 import java.util.concurrent.TimeoutException
+import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicLong
 
 val sh: String = "/bin/sh"
@@ -34,7 +34,7 @@ fun startEmulators(
         createAvd: (args: Commands.Start) -> Observable<Unit> = ::createAvd,
         applyConfig: (args: Commands.Start) -> Observable<Unit> = ::applyConfig,
         emulatorCmd: (args: Commands.Start) -> String = ::emulatorBinary,
-        findAvailablePortsForNewEmulator: () -> Observable<Pair<Int, Int>> = ::findAvailablePortsForNewEmulator,
+        findAvailablePortsForNewEmulator: () -> Observable<Pair<Int, Int>> = {findAvailablePortsForNewEmulator(connectedAdbDevices)},
         startEmulatorProcess: (List<String>, Commands.Start) -> Observable<Notification> = ::startEmulatorProcess,
         waitForEmulatorToStart: (Commands.Start, () -> Observable<Set<AdbDevice>>, Observable<Notification>, Pair<Int, Int>) -> Observable<Emulator> = ::waitForEmulatorToStart,
         waitForEmulatorToFinishBoot: (Emulator, Commands.Start) -> Observable<Emulator> = ::waitForEmulatorToFinishBoot
@@ -225,23 +225,23 @@ private fun emulatorBinary(args: Commands.Start): String =
             emulator
         }
 
-private val usedPorts: MutableList<Int> = mutableListOf()
+private val assignedPortsMax: AtomicInteger = AtomicInteger(5552)
 /**
  * Sometimes on Linux "emulator -verbose -avd" does not print serial id of started emulator,
  * so by allocating ports manually we know which serial id emulator will have.
  */
-private fun findAvailablePortsForNewEmulator(): Observable<Pair<Int, Int>> = connectedAdbDevices()
+internal fun findAvailablePortsForNewEmulator(connectedAdbDevices:() -> Observable<Set<AdbDevice>>): Observable<Pair<Int, Int>> =
+    connectedAdbDevices()
         .map { it.filter { it.isEmulator } }
         .map {
-            synchronized(usedPorts) {
-                it
-                        .map { it.id }
-                        .map { it.substringAfter("emulator-") }
-                        .map { it.toInt() }
-                        .let { it + usedPorts }
-                        .let { (it.max() ?: 5552) + 2 }
-                        .also { usedPorts.add(it) }
-            }
+            it.map { it.id }
+            .map { it.substringAfter("emulator-") }
+            .map { it.toInt() }.max() ?: 5552
+                .let { runningEmulatorPortsMax ->
+                    assignedPortsMax.updateAndGet { portMax ->
+                        maxOf(runningEmulatorPortsMax, portMax) + 2
+                    }
+                }
         }
         .map { it to it + 1 }
 
