@@ -310,7 +310,7 @@ private fun waitForEmulatorToFinishBoot(
                                     adb,
                                     "-s", emulator.id,
                                     "shell",
-                                    "getprop", "init.svc.bootanim"
+                                    "getprop", "dev.bootcomplete"
                             ),
                             timeout = 10 to SECONDS,
                             redirectOutputTo = outputDirectory(args),
@@ -318,9 +318,9 @@ private fun waitForEmulatorToFinishBoot(
                     )
                             .filter { it is Notification.Exit }
                             .cast(Notification.Exit::class.java)
-                            .map { it.output.readText().contains("stopped", ignoreCase = true) }
-                            .switchMap { bootAnimationStopped ->
-                                if (bootAnimationStopped) {
+                            .map { it.output.readText().contains("1", ignoreCase = true) }
+                            .switchMap { bootCompleted ->
+                                if (bootCompleted) {
                                     Observable.just(targetEmulator)
                                 } else {
                                     Observable.never()
