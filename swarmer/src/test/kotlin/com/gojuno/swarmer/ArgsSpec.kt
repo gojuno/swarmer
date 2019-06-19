@@ -55,7 +55,8 @@ class ArgsSpec : Spek({
                     redirectLogcatTo = "logcat.txt",
                     verbose = true,
                     keepOutputOnExit = true,
-                    keepExistingAvds = true
+                    keepExistingAvds = true,
+                    headless = false
             )))
         }
     }
