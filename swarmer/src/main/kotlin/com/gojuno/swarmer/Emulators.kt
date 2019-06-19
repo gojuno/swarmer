@@ -22,6 +22,7 @@ val sh: String = "/bin/sh"
 val avdManager: String = "$androidHome/tools/bin/avdmanager"
 val emulator = "$androidHome/emulator/emulator"
 val emulatorCompat = "$androidHome/tools/emulator"
+val emulatorHeadless = "$androidHome/emulator/emulator-headless"
 
 data class Emulator(
         val id: String,
@@ -227,10 +228,10 @@ private fun applyConfig(args: Commands.Start): Observable<Unit> = Observable
         .map { Unit }
 
 private fun emulatorBinary(args: Commands.Start): String =
-        if (args.useCompatEmulator) {
-            emulatorCompat
-        } else {
-            emulator
+        when {
+            args.useCompatEmulator -> emulatorCompat
+            args.headless -> emulatorHeadless
+            else -> emulator
         }
 
 private fun findAvailablePortsForNewEmulator(): Observable<Pair<Int, Int>> = connectedAdbDevices()

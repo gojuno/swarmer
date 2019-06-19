@@ -129,7 +129,15 @@ sealed class Commands {
                     description = "Don't recreate avds if one with the same name already exists.",
                     order = 12
             )
-            var keepExistingAvds: Boolean = false
+            var keepExistingAvds: Boolean = false,
+
+            @Parameter(
+                    names = ["--headless"],
+                    required = false,
+                    description = "Use a headless emulator instead",
+                    order = 13
+            )
+            var headless: Boolean = false
 
     ) : Commands()
 
